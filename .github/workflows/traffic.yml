@@ -2,8 +2,8 @@ name: Traffic Log
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # runs daily at 06:00 UTC
-  workflow_dispatch:        # also allows manual trigger from GitHub UI
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 jobs:
   log-traffic:
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Fetch GitHub Pages traffic
+      - name: Fetch traffic data
         id: traffic
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,51 +23,31 @@ jobs:
           DATE=$(date -u +"%Y-%m-%d")
           echo "date=$DATE" >> $GITHUB_OUTPUT
 
-          # Fetch views (last 14 days rolling window from GitHub API)
           VIEWS=$(curl -s -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/jpfiorilli/worldcup2026/traffic/views" )
+            "https://api.github.com/repos/jpfiorilli/worldcup2026/traffic/views")
           TOTAL_VIEWS=$(echo $VIEWS | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count',0))")
           UNIQ_VIEWS=$(echo $VIEWS  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('uniques',0))")
 
-          # Fetch clones
-          CLONES=$(curl -s -H "Authorization: token $GH_TOKEN" \
-            "https://api.github.com/repos/jpfiorilli/worldcup2026/traffic/clones")
-          TOTAL_CLONES=$(echo $CLONES | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count',0))")
-          UNIQ_CLONES=$(echo $CLONES  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('uniques',0))")
-
-          # Fetch CounterAPI app visits & shares
           APP_VISITS=$(curl -s "https://api.counterapi.dev/v1/jpfiorilli-wc2026/visits" \
             | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count', d.get('value','?')))" 2>/dev/null || echo "?")
           APP_SHARES=$(curl -s "https://api.counterapi.dev/v1/jpfiorilli-wc2026/shares" \
             | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count', d.get('value','?')))" 2>/dev/null || echo "?")
 
-          echo "total_views=$TOTAL_VIEWS"   >> $GITHUB_OUTPUT
-          echo "uniq_views=$UNIQ_VIEWS"     >> $GITHUB_OUTPUT
-          echo "total_clones=$TOTAL_CLONES" >> $GITHUB_OUTPUT
-          echo "uniq_clones=$UNIQ_CLONES"   >> $GITHUB_OUTPUT
-          echo "app_visits=$APP_VISITS"     >> $GITHUB_OUTPUT
-          echo "app_shares=$APP_SHARES"     >> $GITHUB_OUTPUT
+          echo "total_views=$TOTAL_VIEWS" >> $GITHUB_OUTPUT
+          echo "uniq_views=$UNIQ_VIEWS"   >> $GITHUB_OUTPUT
+          echo "app_visits=$APP_VISITS"   >> $GITHUB_OUTPUT
+          echo "app_shares=$APP_SHARES"   >> $GITHUB_OUTPUT
 
       - name: Update TRAFFIC.md
         env:
-          DATE:          ${{ steps.traffic.outputs.date }}
-          TOTAL_VIEWS:   ${{ steps.traffic.outputs.total_views }}
-          UNIQ_VIEWS:    ${{ steps.traffic.outputs.uniq_views }}
-          TOTAL_CLONES:  ${{ steps.traffic.outputs.total_clones }}
-          UNIQ_CLONES:   ${{ steps.traffic.outputs.uniq_clones }}
-          APP_VISITS:    ${{ steps.traffic.outputs.app_visits }}
-          APP_SHARES:    ${{ steps.traffic.outputs.app_shares }}
+          DATE:        ${{ steps.traffic.outputs.date }}
+          TOTAL_VIEWS: ${{ steps.traffic.outputs.total_views }}
+          UNIQ_VIEWS:  ${{ steps.traffic.outputs.uniq_views }}
+          APP_VISITS:  ${{ steps.traffic.outputs.app_visits }}
+          APP_SHARES:  ${{ steps.traffic.outputs.app_shares }}
         run: |
-          # Append a new row to the log table (create file + header if first time)
           if [ ! -f TRAFFIC.md ]; then
-            cat > TRAFFIC.md << 'HEADER'
-# 📊 Traffic Log — WC 2026 App
-
-Actualizado automáticamente cada día a las 06:00 UTC.
-
-| Fecha | Vistas repo (14d) | Únicos repo | App visits (total) | App shares |
-|---|---|---|---|---|
-HEADER
+            printf '# Trafico\n\n| Fecha | Vistas repo (14d) | Unicos repo | App visits | App shares |\n|---|---|---|---|---|\n' > TRAFFIC.md
           fi
           echo "| $DATE | $TOTAL_VIEWS | $UNIQ_VIEWS | $APP_VISITS | $APP_SHARES |" >> TRAFFIC.md
 

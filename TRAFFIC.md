@@ -18,3 +18,4 @@ Actualizado automáticamente cada día a las 06:00 UTC por GitHub Actions.
 | Fecha | Vistas repo (14d) | Únicos repo | App visits (total) | App shares |
 |---|---|---|---|---|
 | 2026-06-07 | — | — | iniciando... | iniciando... |
+| 2026-06-07 | 0 | 0 | ? | ? |

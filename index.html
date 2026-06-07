@@ -334,6 +334,21 @@ body{
   .match-team-name{font-size:15px}.score-nums{font-size:30px}
   .gteam{font-size:13px}.mc-team{font-size:14px}
 }
+/* ── FONT SIZE SCALING ── */
+html.fs-sm { font-size: 14px; }
+html.fs-md { font-size: 16px; }
+html.fs-lg { font-size: 18px; }
+html.fs-xl { font-size: 20px; }
+/* FONT SIZE PICKER */
+.fs-picker{display:flex;gap:8px;align-items:center}
+.fs-btn{
+  flex:1;padding:10px 4px;border:1px solid var(--border);border-radius:var(--radius);
+  background:var(--bg3);cursor:pointer;text-align:center;
+  font-family:var(--font-b);font-weight:700;color:var(--gray);
+  transition:all .15s;line-height:1;
+}
+.fs-btn:hover{border-color:var(--gold);color:var(--white)}
+.fs-btn.active{background:rgba(201,168,76,.12);border-color:var(--gold);color:var(--gold2)}
 /* ── ABOUT PAGE ── */
 .about-hero{display:flex;flex-direction:column;align-items:center;padding:32px 20px 24px;text-align:center;border-bottom:1px solid var(--border)}
 .about-avatar{width:72px;height:72px;border-radius:50%;background:var(--bg3);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:28px;letter-spacing:.04em;color:var(--gold2);margin-bottom:14px}
@@ -396,7 +411,7 @@ body{
     <button class="nav-tab" onclick="switchPage('fixtures',2)">Fixture</button>
     <button class="nav-tab" onclick="switchPage('bracket',3)">Bracket</button>
     <button class="nav-tab" onclick="switchPage('favs',4)">★ Favs</button>
-    <button class="nav-tab" onclick="switchPage('about',5)">Acerca</button>
+    <button class="nav-tab" onclick="switchPage('about',5)">⚙ Config</button>
   </div>
 </header>
 
@@ -453,7 +468,7 @@ body{
     <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Favs</span>
   </button>
   <button class="bb" id="bn5" onclick="switchPage('about',5)">
-    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Acerca</span>
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Config</span>
   </button>
 </nav>
 
@@ -1206,6 +1221,28 @@ function renderAbout(){
   </div>
 
   <div class="about-section">
+    <div class="about-section-title">Tamaño de texto</div>
+    <div class="fs-picker">
+      <button class="fs-btn" data-fs="fs-sm" onclick="setFontSize('fs-sm')">
+        <span style="font-size:12px">A</span><br>
+        <span style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Pequeño</span>
+      </button>
+      <button class="fs-btn" data-fs="fs-md" onclick="setFontSize('fs-md')">
+        <span style="font-size:15px">A</span><br>
+        <span style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Normal</span>
+      </button>
+      <button class="fs-btn" data-fs="fs-lg" onclick="setFontSize('fs-lg')">
+        <span style="font-size:18px">A</span><br>
+        <span style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Grande</span>
+      </button>
+      <button class="fs-btn" data-fs="fs-xl" onclick="setFontSize('fs-xl')">
+        <span style="font-size:21px">A</span><br>
+        <span style="font-size:9px;letter-spacing:.06em;text-transform:uppercase;opacity:.7">Extra</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="about-section">
     <div class="about-section-title">Estadísticas de uso</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 4px">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
@@ -1248,6 +1285,11 @@ function renderAbout(){
     <br>Datos live vía ESPN · Diseño inspirado en FIFA WC 2026
   </div>`;
   document.getElementById('about-content').innerHTML=h;
+  /* Sync font size button active state */
+  const curFs=FS_CLASSES.find(c=>document.documentElement.classList.contains(c))||'fs-md';
+  document.querySelectorAll('.fs-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.fs===curFs);
+  });
   /* Async: fill in live counts */
   fetchCounts().then(({visits,shares})=>{
     const ve=document.getElementById('stat-visits');
@@ -1298,6 +1340,26 @@ function manualRefresh(){
   setTimeout(()=>b.classList.remove('sp'),700);
   fetchScores();
 }
+
+/* ═══════════════════════════════════════
+   FONT SIZE
+   ═══════════════════════════════════════ */
+const FS_CLASSES=['fs-sm','fs-md','fs-lg','fs-xl'];
+function setFontSize(cls){
+  FS_CLASSES.forEach(c=>document.documentElement.classList.remove(c));
+  document.documentElement.classList.add(cls);
+  try{localStorage.setItem('wc26_fs',cls)}catch(e){}
+  /* Update active button state if picker is visible */
+  document.querySelectorAll('.fs-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.fs===cls);
+  });
+}
+/* Load saved font size */
+try{
+  const saved=localStorage.getItem('wc26_fs');
+  if(saved&&FS_CLASSES.includes(saved)) setFontSize(saved);
+  else setFontSize('fs-md');
+}catch(e){setFontSize('fs-md');}
 
 /* ═══════════════════════════════════════
    THEME TOGGLE — day / night

@@ -479,29 +479,30 @@ html.fs-xl { font-size: 20px; }
 const GROUPS={
   A:{n:"Grupo A",teams:["Mexico","South Korea","South Africa","Czechia"]},
   B:{n:"Grupo B",teams:["Canada","Bosnia-Herzegovina","Qatar","Switzerland"]},
-  C:{n:"Grupo C",teams:["Brazil","Morocco","Algeria","New Zealand"]},
+  C:{n:"Grupo C",teams:["Brazil","Morocco","Haiti","Scotland"]},
   D:{n:"Grupo D",teams:["United States","Paraguay","Australia","Turkey"]},
-  E:{n:"Grupo E",teams:["Germany","Chile","Belgium","Ivory Coast"]},
-  F:{n:"Grupo F",teams:["Netherlands","Japan","Senegal","New Zealand"]},
+  E:{n:"Grupo E",teams:["Germany","Curaçao","Ivory Coast","Ecuador"]},
+  F:{n:"Grupo F",teams:["Netherlands","Japan","Sweden","Tunisia"]},
   G:{n:"Grupo G",teams:["Belgium","Egypt","Iran","New Zealand"]},
   H:{n:"Grupo H",teams:["Spain","Uruguay","Saudi Arabia","Cape Verde"]},
-  I:{n:"Grupo I",teams:["France","Senegal","Ecuador","Uzbekistan"]},
+  I:{n:"Grupo I",teams:["France","Senegal","Iraq","Norway"]},
   J:{n:"Grupo J",teams:["Argentina","Algeria","Austria","Jordan"]},
-  K:{n:"Grupo K",teams:["Portugal","Colombia","Poland","Venezuela"]},
+  K:{n:"Grupo K",teams:["Portugal","Colombia","DR Congo","Uzbekistan"]},
   L:{n:"Grupo L",teams:["England","Croatia","Ghana","Panama"]}
 };
 const ALL_TEAMS=Object.values(GROUPS).flatMap(g=>g.teams).filter((v,i,a)=>a.indexOf(v)===i).sort();
 const FLAGS={
   "Mexico":"🇲🇽","South Korea":"🇰🇷","South Africa":"🇿🇦","Czechia":"🇨🇿",
   "Canada":"🇨🇦","Bosnia-Herzegovina":"🇧🇦","Qatar":"🇶🇦","Switzerland":"🇨🇭",
-  "Brazil":"🇧🇷","Morocco":"🇲🇦","Algeria":"🇩🇿","New Zealand":"🇳🇿",
+  "Brazil":"🇧🇷","Morocco":"🇲🇦","Haiti":"🇭🇹","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
   "United States":"🇺🇸","Paraguay":"🇵🇾","Australia":"🇦🇺","Turkey":"🇹🇷",
-  "Germany":"🇩🇪","Chile":"🇨🇱","Belgium":"🇧🇪","Ivory Coast":"🇨🇮",
-  "Netherlands":"🇳🇱","Japan":"🇯🇵","Senegal":"🇸🇳","Egypt":"🇪🇬","Iran":"🇮🇷",
+  "Germany":"🇩🇪","Curaçao":"🇨🇼","Ivory Coast":"🇨🇮","Ecuador":"🇪🇨",
+  "Netherlands":"🇳🇱","Japan":"🇯🇵","Sweden":"🇸🇪","Tunisia":"🇹🇳",
+  "Belgium":"🇧🇪","Egypt":"🇪🇬","Iran":"🇮🇷","New Zealand":"🇳🇿",
   "Spain":"🇪🇸","Uruguay":"🇺🇾","Saudi Arabia":"🇸🇦","Cape Verde":"🇨🇻",
-  "France":"🇫🇷","Ecuador":"🇪🇨","Uzbekistan":"🇺🇿",
-  "Argentina":"🇦🇷","Austria":"🇦🇹","Jordan":"🇯🇴",
-  "Portugal":"🇵🇹","Colombia":"🇨🇴","Poland":"🇵🇱","Venezuela":"🇻🇪",
+  "France":"🇫🇷","Senegal":"🇸🇳","Iraq":"🇮🇶","Norway":"🇳🇴",
+  "Argentina":"🇦🇷","Algeria":"🇩🇿","Austria":"🇦🇹","Jordan":"🇯🇴",
+  "Portugal":"🇵🇹","Colombia":"🇨🇴","DR Congo":"🇨🇩","Uzbekistan":"🇺🇿",
   "England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Croatia":"🇭🇷","Ghana":"🇬🇭","Panama":"🇵🇦"
 };
 const FIXTURES=[
@@ -517,30 +518,30 @@ const FIXTURES=[
   {id:10,g:"B",h:"Canada",a:"Switzerland",utc:"2026-06-19T22:00:00Z",v:"Toronto"},
   {id:11,g:"B",h:"Canada",a:"Qatar",utc:"2026-06-26T02:00:00Z",v:"Toronto"},
   {id:12,g:"B",h:"Switzerland",a:"Bosnia-Herzegovina",utc:"2026-06-26T02:00:00Z",v:"Vancouver"},
-  {id:13,g:"C",h:"Morocco",a:"New Zealand",utc:"2026-06-14T20:00:00Z",v:"Miami"},
-  {id:14,g:"C",h:"Brazil",a:"Algeria",utc:"2026-06-14T23:00:00Z",v:"Dallas"},
-  {id:15,g:"C",h:"Brazil",a:"New Zealand",utc:"2026-06-19T19:00:00Z",v:"San Francisco"},
-  {id:16,g:"C",h:"Morocco",a:"Algeria",utc:"2026-06-20T22:00:00Z",v:"Dallas"},
+  {id:13,g:"C",h:"Morocco",a:"Haiti",utc:"2026-06-14T20:00:00Z",v:"Miami"},
+  {id:14,g:"C",h:"Brazil",a:"Scotland",utc:"2026-06-14T23:00:00Z",v:"Dallas"},
+  {id:15,g:"C",h:"Brazil",a:"Haiti",utc:"2026-06-19T19:00:00Z",v:"San Francisco"},
+  {id:16,g:"C",h:"Morocco",a:"Scotland",utc:"2026-06-20T22:00:00Z",v:"Dallas"},
   {id:17,g:"C",h:"Morocco",a:"Brazil",utc:"2026-06-26T22:00:00Z",v:"Miami"},
-  {id:18,g:"C",h:"Algeria",a:"New Zealand",utc:"2026-06-26T22:00:00Z",v:"Houston"},
+  {id:18,g:"C",h:"Scotland",a:"Haiti",utc:"2026-06-26T22:00:00Z",v:"Houston"},
   {id:19,g:"D",h:"United States",a:"Paraguay",utc:"2026-06-13T01:00:00Z",v:"Los Angeles"},
   {id:20,g:"D",h:"Australia",a:"Turkey",utc:"2026-06-13T22:00:00Z",v:"Kansas City"},
   {id:21,g:"D",h:"United States",a:"Australia",utc:"2026-06-20T01:00:00Z",v:"Seattle"},
   {id:22,g:"D",h:"Turkey",a:"Paraguay",utc:"2026-06-21T00:00:00Z",v:"Houston"},
   {id:23,g:"D",h:"United States",a:"Turkey",utc:"2026-06-27T01:00:00Z",v:"Los Angeles"},
   {id:24,g:"D",h:"Paraguay",a:"Australia",utc:"2026-06-27T01:00:00Z",v:"Kansas City"},
-  {id:25,g:"E",h:"Germany",a:"Chile",utc:"2026-06-14T01:00:00Z",v:"Philadelphia"},
-  {id:26,g:"E",h:"Belgium",a:"Ivory Coast",utc:"2026-06-15T23:00:00Z",v:"Seattle"},
-  {id:27,g:"E",h:"Germany",a:"Belgium",utc:"2026-06-21T22:00:00Z",v:"Nueva York"},
-  {id:28,g:"E",h:"Chile",a:"Ivory Coast",utc:"2026-06-21T19:00:00Z",v:"Boston"},
+  {id:25,g:"E",h:"Germany",a:"Curaçao",utc:"2026-06-14T01:00:00Z",v:"Philadelphia"},
+  {id:26,g:"E",h:"Ecuador",a:"Ivory Coast",utc:"2026-06-15T23:00:00Z",v:"Seattle"},
+  {id:27,g:"E",h:"Germany",a:"Ecuador",utc:"2026-06-21T22:00:00Z",v:"Nueva York"},
+  {id:28,g:"E",h:"Curaçao",a:"Ivory Coast",utc:"2026-06-21T19:00:00Z",v:"Boston"},
   {id:29,g:"E",h:"Germany",a:"Ivory Coast",utc:"2026-06-27T22:00:00Z",v:"Philadelphia"},
-  {id:30,g:"E",h:"Chile",a:"Belgium",utc:"2026-06-27T22:00:00Z",v:"Boston"},
-  {id:31,g:"F",h:"Japan",a:"New Zealand",utc:"2026-06-14T19:00:00Z",v:"Dallas"},
-  {id:32,g:"F",h:"Netherlands",a:"Senegal",utc:"2026-06-14T23:00:00Z",v:"Houston"},
+  {id:30,g:"E",h:"Curaçao",a:"Ecuador",utc:"2026-06-27T22:00:00Z",v:"Boston"},
+  {id:31,g:"F",h:"Japan",a:"Sweden",utc:"2026-06-14T19:00:00Z",v:"Dallas"},
+  {id:32,g:"F",h:"Netherlands",a:"Tunisia",utc:"2026-06-14T23:00:00Z",v:"Houston"},
   {id:33,g:"F",h:"Netherlands",a:"Japan",utc:"2026-06-20T19:00:00Z",v:"Dallas"},
-  {id:34,g:"F",h:"Senegal",a:"New Zealand",utc:"2026-06-20T22:00:00Z",v:"Houston"},
-  {id:35,g:"F",h:"Netherlands",a:"New Zealand",utc:"2026-06-26T19:00:00Z",v:"Miami"},
-  {id:36,g:"F",h:"Senegal",a:"Japan",utc:"2026-06-26T19:00:00Z",v:"Dallas"},
+  {id:34,g:"F",h:"Sweden",a:"Tunisia",utc:"2026-06-20T22:00:00Z",v:"Houston"},
+  {id:35,g:"F",h:"Netherlands",a:"Sweden",utc:"2026-06-26T19:00:00Z",v:"Miami"},
+  {id:36,g:"F",h:"Tunisia",a:"Japan",utc:"2026-06-26T19:00:00Z",v:"Dallas"},
   {id:37,g:"G",h:"Iran",a:"New Zealand",utc:"2026-06-15T19:00:00Z",v:"San Francisco"},
   {id:38,g:"G",h:"Belgium",a:"Egypt",utc:"2026-06-15T22:00:00Z",v:"Seattle"},
   {id:39,g:"G",h:"Belgium",a:"Iran",utc:"2026-06-21T23:00:00Z",v:"San Francisco"},
@@ -553,24 +554,24 @@ const FIXTURES=[
   {id:46,g:"H",h:"Uruguay",a:"Cape Verde",utc:"2026-06-21T19:00:00Z",v:"Miami"},
   {id:47,g:"H",h:"Spain",a:"Uruguay",utc:"2026-06-27T19:00:00Z",v:"Dallas"},
   {id:48,g:"H",h:"Cape Verde",a:"Saudi Arabia",utc:"2026-06-27T19:00:00Z",v:"Miami"},
-  {id:49,g:"I",h:"Senegal",a:"Ecuador",utc:"2026-06-16T19:00:00Z",v:"Dallas"},
-  {id:50,g:"I",h:"France",a:"Uzbekistan",utc:"2026-06-16T22:00:00Z",v:"Los Angeles"},
+  {id:49,g:"I",h:"Senegal",a:"Norway",utc:"2026-06-16T19:00:00Z",v:"Dallas"},
+  {id:50,g:"I",h:"France",a:"Iraq",utc:"2026-06-16T22:00:00Z",v:"Los Angeles"},
   {id:51,g:"I",h:"France",a:"Senegal",utc:"2026-06-22T22:00:00Z",v:"Los Angeles"},
-  {id:52,g:"I",h:"Ecuador",a:"Uzbekistan",utc:"2026-06-22T19:00:00Z",v:"Seattle"},
-  {id:53,g:"I",h:"France",a:"Ecuador",utc:"2026-06-28T22:00:00Z",v:"Los Angeles"},
-  {id:54,g:"I",h:"Uzbekistan",a:"Senegal",utc:"2026-06-28T22:00:00Z",v:"Dallas"},
+  {id:52,g:"I",h:"Norway",a:"Iraq",utc:"2026-06-22T19:00:00Z",v:"Seattle"},
+  {id:53,g:"I",h:"France",a:"Norway",utc:"2026-06-28T22:00:00Z",v:"Los Angeles"},
+  {id:54,g:"I",h:"Iraq",a:"Senegal",utc:"2026-06-28T22:00:00Z",v:"Dallas"},
   {id:55,g:"J",h:"Argentina",a:"Jordan",utc:"2026-06-16T01:00:00Z",v:"Nueva York"},
   {id:56,g:"J",h:"Algeria",a:"Austria",utc:"2026-06-16T23:00:00Z",v:"Houston"},
   {id:57,g:"J",h:"Argentina",a:"Algeria",utc:"2026-06-22T01:00:00Z",v:"Miami"},
   {id:58,g:"J",h:"Austria",a:"Jordan",utc:"2026-06-23T00:00:00Z",v:"Seattle"},
   {id:59,g:"J",h:"Argentina",a:"Austria",utc:"2026-06-28T19:00:00Z",v:"Nueva York"},
   {id:60,g:"J",h:"Jordan",a:"Algeria",utc:"2026-06-28T19:00:00Z",v:"Houston"},
-  {id:61,g:"K",h:"Portugal",a:"Venezuela",utc:"2026-06-17T01:00:00Z",v:"Boston"},
-  {id:62,g:"K",h:"Colombia",a:"Poland",utc:"2026-06-17T22:00:00Z",v:"Nueva York"},
+  {id:61,g:"K",h:"Portugal",a:"Uzbekistan",utc:"2026-06-17T01:00:00Z",v:"Boston"},
+  {id:62,g:"K",h:"Colombia",a:"DR Congo",utc:"2026-06-17T22:00:00Z",v:"Nueva York"},
   {id:63,g:"K",h:"Portugal",a:"Colombia",utc:"2026-06-23T22:00:00Z",v:"Boston"},
-  {id:64,g:"K",h:"Poland",a:"Venezuela",utc:"2026-06-23T19:00:00Z",v:"Kansas City"},
-  {id:65,g:"K",h:"Portugal",a:"Poland",utc:"2026-06-29T01:00:00Z",v:"Boston"},
-  {id:66,g:"K",h:"Venezuela",a:"Colombia",utc:"2026-06-29T01:00:00Z",v:"Miami"},
+  {id:64,g:"K",h:"DR Congo",a:"Uzbekistan",utc:"2026-06-23T19:00:00Z",v:"Kansas City"},
+  {id:65,g:"K",h:"Portugal",a:"DR Congo",utc:"2026-06-29T01:00:00Z",v:"Boston"},
+  {id:66,g:"K",h:"Uzbekistan",a:"Colombia",utc:"2026-06-29T01:00:00Z",v:"Miami"},
   {id:67,g:"L",h:"England",a:"Croatia",utc:"2026-06-17T19:00:00Z",v:"Nueva York"},
   {id:68,g:"L",h:"Panama",a:"Ghana",utc:"2026-06-17T23:00:00Z",v:"Houston"},
   {id:69,g:"L",h:"England",a:"Panama",utc:"2026-06-24T01:00:00Z",v:"Philadelphia"},
@@ -1243,20 +1244,6 @@ function renderAbout(){
   </div>
 
   <div class="about-section">
-    <div class="about-section-title">Estadísticas de uso</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 4px">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
-        <div style="font-family:var(--font-h);font-size:32px;letter-spacing:.04em;color:var(--gold2)" id="stat-visits">…</div>
-        <div style="font-family:var(--font-b);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px">Visitas totales</div>
-      </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center">
-        <div style="font-family:var(--font-h);font-size:32px;letter-spacing:.04em;color:var(--gold2)" id="stat-shares">…</div>
-        <div style="font-family:var(--font-b);font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px">Veces compartida</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="about-section">
     <div class="about-section-title">La App</div>
     <div class="about-app-card">
       <div class="about-app-name">WC 2026 · Live Scores</div>
@@ -1289,13 +1276,6 @@ function renderAbout(){
   const curFs=FS_CLASSES.find(c=>document.documentElement.classList.contains(c))||'fs-md';
   document.querySelectorAll('.fs-btn').forEach(b=>{
     b.classList.toggle('active', b.dataset.fs===curFs);
-  });
-  /* Async: fill in live counts */
-  fetchCounts().then(({visits,shares})=>{
-    const ve=document.getElementById('stat-visits');
-    const se=document.getElementById('stat-shares');
-    if(ve) ve.textContent=Number(visits).toLocaleString('es-AR');
-    if(se) se.textContent=Number(shares).toLocaleString('es-AR');
   });
 }
 

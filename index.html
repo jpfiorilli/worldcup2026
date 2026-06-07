@@ -254,6 +254,11 @@ body{
 .legend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:8px 14px 0;font-size:10px;color:var(--muted)}
 .legend-item{display:flex;align-items:center;gap:5px}
 .legend-dot{width:8px;height:8px;border-radius:1px;flex-shrink:0}
+/* FIXTURE VIEW TOGGLE */
+.view-toggle{display:flex;gap:0;margin:8px 12px 0;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.vt-btn{flex:1;padding:8px;border:none;background:var(--bg3);cursor:pointer;font-family:var(--font-h);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);transition:all .15s}
+.vt-btn+.vt-btn{border-left:1px solid var(--border)}
+.vt-btn.active{background:rgba(201,168,76,.12);color:var(--gold2)}
 /* REFRESH BAR */
 .rbar{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;font-size:11px;color:var(--muted)}
 .rbtn{
@@ -334,11 +339,11 @@ body{
   .match-team-name{font-size:15px}.score-nums{font-size:30px}
   .gteam{font-size:13px}.mc-team{font-size:14px}
 }
-/* ── FONT SIZE SCALING ── */
-html.fs-sm { font-size: 14px; }
-html.fs-md { font-size: 16px; }
-html.fs-lg { font-size: 18px; }
-html.fs-xl { font-size: 20px; }
+/* ── FONT SIZE SCALING — zoom scales everything including px ── */
+body.fs-sm { zoom: 0.88; }
+body.fs-md { zoom: 1;    }
+body.fs-lg { zoom: 1.12; }
+body.fs-xl { zoom: 1.25; }
 /* FONT SIZE PICKER */
 .fs-picker{display:flex;gap:8px;align-items:center}
 .fs-btn{
@@ -435,6 +440,10 @@ html.fs-xl { font-size: 20px; }
 </div>
 
 <div class="page" id="page-fixtures">
+  <div class="view-toggle">
+    <button class="vt-btn active" id="vt-group" onclick="setFixtureView('group')">Por grupo</button>
+    <button class="vt-btn" id="vt-date" onclick="setFixtureView('date')">Por fecha</button>
+  </div>
   <div style="height:6px"></div>
   <div id="fixtures-content"><div class="loading"><span>●</span><span>●</span><span>●</span></div></div>
 </div>
@@ -634,6 +643,7 @@ let standings={};
 let bracketData={};   // matchId -> {h,a,hs,as,status,min}
 let lastFetch=null;
 let curPage='scores';
+let fixtureView='group'; // 'group' or 'date'
 let countdownTimer=null;
 
 /* ── FAVOURITES (persist via localStorage) ── */
@@ -999,39 +1009,80 @@ function renderGroups(){
 }
 
 /* ── FIXTURES ── */
+/* ── FIXTURES ── */
+function setFixtureView(v){
+  fixtureView=v;
+  document.querySelectorAll('.vt-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('vt-'+v);
+  if(btn) btn.classList.add('active');
+  renderFixtures();
+}
+
 function renderFixtures(){
+  if(fixtureView==='date') renderFixturesByDate();
+  else renderFixturesByGroup();
+}
+
+function fixtureCard(f){
+  const d=liveData[f.id];
+  const fh=isFav(f.h),fa=isFav(f.a),isFavMatch=fh||fa;
+  let mid;
+  if(d&&d.status==='ft'){
+    mid=`<div class="mc-center"><div class="mc-score">${d.hs}–${d.as}</div><div class="mc-time">FT · ${f.v}</div></div>`;
+  } else if(d&&d.status==='live'){
+    mid=`<div class="mc-center"><div class="mc-score live-s">${d.hs}–${d.as}</div><div class="mc-time" style="color:var(--live)">${d.min}' · ${f.v}</div></div>`;
+  } else {
+    const cd=countdown(f.utc);const soon=isSoon(f.utc);
+    mid=`<div class="mc-center">
+      <div class="mc-score up">${artTime(f.utc)}</div>
+      <div class="mc-time">${artDate(f.utc)} · ${f.v}</div>
+      ${cd?`<div class="countdown${soon?' soon':''}" data-utc="${f.utc}">⏱ ${cd}</div>`:''}
+    </div>`;
+  }
+  return `<div class="match-card${isFavMatch?' fav-match':''}" style="margin:4px 8px;padding:7px 10px">
+    <span class="mc-team" style="font-size:13px"><span class="mc-flag">${fl(f.h)}</span>${fh?'⭐ ':''}${f.h}</span>
+    ${mid}
+    <span class="mc-team right" style="font-size:13px">${fa?'⭐ ':''}${f.a}<span class="mc-flag-r">${fl(f.a)}</span></span>
+  </div>`;
+}
+
+function renderFixturesByGroup(){
   let h='';
   for(const[k,data] of Object.entries(GROUPS)){
-    const gf=FIXTURES.filter(f=>f.g===k);
     h+=`<div class="group-block" style="margin-bottom:8px"><div class="group-title">${data.n}</div>`;
-    gf.forEach(f=>{
-      const d=liveData[f.id];
-      const fh=isFav(f.h),fa=isFav(f.a),isFavMatch=fh||fa;
-      let mid;
-      if(d&&d.status==='ft'){
-        const hw=d.hs>d.as;
-        mid=`<div class="mc-center"><div class="mc-score">${d.hs}–${d.as}</div><div class="mc-time">FT · ${f.v}</div></div>`;
-      } else if(d&&d.status==='live'){
-        mid=`<div class="mc-center"><div class="mc-score live-s">${d.hs}–${d.as}</div><div class="mc-time" style="color:var(--live-red)">${d.min}' · ${f.v}</div></div>`;
-      } else {
-        const cd=countdown(f.utc);
-        const soon=isSoon(f.utc);
-        mid=`<div class="mc-center">
-          <div class="mc-score up">${artTime(f.utc)}</div>
-          <div class="mc-time">${artDate(f.utc)} · ${f.v}</div>
-          ${cd?`<div class="countdown${soon?' soon':''}" data-utc="${f.utc}">⏱ ${cd}</div>`:''}
-        </div>`;
-      }
-      h+=`<div class="match-card${isFavMatch?' fav-match':''}" style="margin:4px 8px;padding:7px 10px">
-        <span class="mc-team" style="font-size:13px"><span class="mc-flag">${fl(f.h)}</span>${fh?'⭐ ':''}${f.h}</span>
-        ${mid}
-        <span class="mc-team right" style="font-size:13px">${fa?'⭐ ':''}${f.a}<span class="mc-flag-r">${fl(f.a)}</span></span>
-      </div>`;
+    FIXTURES.filter(f=>f.g===k).forEach(f=>h+=fixtureCard(f));
+    h+=`</div>`;
+  }
+  document.getElementById('fixtures-content').innerHTML=h;
+}
+
+function renderFixturesByDate(){
+  const byDate={};
+  for(const f of [...FIXTURES].sort((a,b)=>new Date(a.utc)-new Date(b.utc))){
+    const key=new Intl.DateTimeFormat('sv-SE',{timeZone:TZ}).format(new Date(f.utc));
+    if(!byDate[key]) byDate[key]=[];
+    byDate[key].push(f);
+  }
+  let h='';
+  for(const date of Object.keys(byDate).sort()){
+    const fixes=byDate[date];
+    const label=new Intl.DateTimeFormat('es-AR',{timeZone:TZ,weekday:'long',day:'numeric',month:'long'}).format(new Date(fixes[0].utc));
+    const todayFlag=isToday(fixes[0].utc)?`<span style="font-size:10px;color:var(--live)">● HOY</span>`:'';
+    h+=`<div class="group-block" style="margin-bottom:8px">
+      <div class="group-title"><span style="text-transform:capitalize">${label}</span>${todayFlag}</div>`;
+    fixes.forEach(f=>{
+      /* Inline group badge into the card */
+      const badge=`<span style="font-size:9px;color:var(--gold);background:rgba(201,168,76,.12);border-radius:3px;padding:1px 5px;margin-right:4px;font-family:var(--font-h);letter-spacing:.06em">G${f.g}</span>`;
+      const card=fixtureCard(f);
+      /* Inject badge after opening mc-team span */
+      h+=card.replace(`style="font-size:13px"><span class="mc-flag">`,`style="font-size:13px">${badge}<span class="mc-flag">`);
     });
     h+=`</div>`;
   }
   document.getElementById('fixtures-content').innerHTML=h;
 }
+
+
 
 /* ── BRACKET ── */
 function renderBracket(){
@@ -1273,7 +1324,7 @@ function renderAbout(){
   </div>`;
   document.getElementById('about-content').innerHTML=h;
   /* Sync font size button active state */
-  const curFs=FS_CLASSES.find(c=>document.documentElement.classList.contains(c))||'fs-md';
+  const curFs=FS_CLASSES.find(c=>document.body.classList.contains(c))||'fs-md';
   document.querySelectorAll('.fs-btn').forEach(b=>{
     b.classList.toggle('active', b.dataset.fs===curFs);
   });
@@ -1326,15 +1377,13 @@ function manualRefresh(){
    ═══════════════════════════════════════ */
 const FS_CLASSES=['fs-sm','fs-md','fs-lg','fs-xl'];
 function setFontSize(cls){
-  FS_CLASSES.forEach(c=>document.documentElement.classList.remove(c));
-  document.documentElement.classList.add(cls);
+  FS_CLASSES.forEach(c=>document.body.classList.remove(c));
+  document.body.classList.add(cls);
   try{localStorage.setItem('wc26_fs',cls)}catch(e){}
-  /* Update active button state if picker is visible */
   document.querySelectorAll('.fs-btn').forEach(b=>{
     b.classList.toggle('active', b.dataset.fs===cls);
   });
 }
-/* Load saved font size */
 try{
   const saved=localStorage.getItem('wc26_fs');
   if(saved&&FS_CLASSES.includes(saved)) setFontSize(saved);

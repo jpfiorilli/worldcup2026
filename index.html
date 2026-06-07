@@ -325,6 +325,30 @@ body{
   .match-team-name{font-size:15px}.score-nums{font-size:30px}
   .gteam{font-size:13px}.mc-team{font-size:14px}
 }
+/* ── ABOUT PAGE ── */
+.about-hero{display:flex;flex-direction:column;align-items:center;padding:32px 20px 24px;text-align:center;border-bottom:1px solid var(--border)}
+.about-avatar{width:72px;height:72px;border-radius:50%;background:var(--bg3);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:28px;letter-spacing:.04em;color:var(--gold2);margin-bottom:14px}
+.about-name{font-family:var(--font-h);font-size:26px;letter-spacing:.1em;text-transform:uppercase;color:var(--white);margin-bottom:4px}
+.about-handle{font-family:var(--font-b);font-size:12px;color:var(--gray);letter-spacing:.04em}
+.about-socials{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;justify-content:center}
+.social-btn{display:flex;align-items:center;gap:7px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 16px;cursor:pointer;font-family:var(--font-b);font-size:12px;font-weight:600;color:var(--white);text-decoration:none;transition:border-color .2s,background .2s}
+.social-btn:hover{border-color:var(--gold);background:rgba(201,168,76,.06)}
+.social-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;flex-shrink:0}
+.about-section{margin:0 12px;padding:16px 0;border-bottom:1px solid var(--border)}
+.about-section-title{font-family:var(--font-h);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.about-section-title::before{content:'';width:3px;height:12px;background:var(--gold);flex-shrink:0}
+.about-app-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+.about-app-name{font-family:var(--font-h);font-size:17px;letter-spacing:.08em;color:var(--gold2);margin-bottom:4px}
+.about-app-desc{font-family:var(--font-b);font-size:13px;color:var(--gray);line-height:1.55;margin-bottom:12px}
+.about-app-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.about-tag{font-family:var(--font-b);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--bg3);border:1px solid var(--border);color:var(--gray);border-radius:4px;padding:3px 8px}
+.share-btn{width:100%;padding:12px;border:none;border-radius:var(--radius);background:var(--gold);color:#000;cursor:pointer;font-family:var(--font-h);font-size:15px;letter-spacing:.14em;text-transform:uppercase;transition:background .2s,transform .1s;display:flex;align-items:center;justify-content:center;gap:8px}
+.share-btn:hover{background:var(--gold2)}.share-btn:active{transform:scale(.98)}
+.share-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2.5;fill:none;flex-shrink:0}
+.share-copied{display:none;text-align:center;margin-top:8px;font-family:var(--font-h);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--done)}
+.share-copied.show{display:block;animation:fadein .3s ease}
+.about-footer{text-align:center;padding:24px 20px 8px;font-family:var(--font-b);font-size:11px;color:var(--muted);line-height:1.6}
+.about-footer a{color:var(--gray);text-decoration:none}.about-footer a:hover{color:var(--gold)}
 </style>
 </head>
 <body>
@@ -363,6 +387,7 @@ body{
     <button class="nav-tab" onclick="switchPage('fixtures',2)">Fixture</button>
     <button class="nav-tab" onclick="switchPage('bracket',3)">Bracket</button>
     <button class="nav-tab" onclick="switchPage('favs',4)">★ Favs</button>
+    <button class="nav-tab" onclick="switchPage('about',5)">Acerca</button>
   </div>
 </header>
 
@@ -398,6 +423,10 @@ body{
   <div id="favs-content"></div>
 </div>
 
+<div class="page" id="page-about">
+  <div id="about-content"></div>
+</div>
+
 <nav class="bnav">
   <button class="bb active" id="bn0" onclick="switchPage('scores',0)">
     <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>Scores</span>
@@ -413,6 +442,9 @@ body{
   </button>
   <button class="bb" id="bn4" onclick="switchPage('favs',4)">
     <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>Favs</span>
+  </button>
+  <button class="bb" id="bn5" onclick="switchPage('about',5)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Acerca</span>
   </button>
 </nav>
 
@@ -757,6 +789,7 @@ function renderAll(){
   else if(curPage==='fixtures') renderFixtures();
   else if(curPage==='bracket') renderBracket();
   else if(curPage==='favs') renderFavs();
+  else if(curPage==='about') renderAbout();
   if(lastFetch){
     const now=new Date();
     const tournStart=new Date('2026-06-11T00:00:00Z');
@@ -1124,6 +1157,79 @@ function tickCountdowns(){
 /* ═══════════════════════════════════════
    NAVIGATION
    ═══════════════════════════════════════ */
+/* ── ABOUT ── */
+function renderAbout(){
+  const APP_URL='https://jpfiorilli.github.io/worldcup2026';
+  const h=`
+  <div class="about-hero">
+    <div class="about-avatar">JF</div>
+    <div class="about-name">Juan Fiorilli</div>
+    <div class="about-handle">@jpfiorilli</div>
+    <div class="about-socials">
+      <a class="social-btn" href="https://linkedin.com/in/jpfiorilli" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        LinkedIn
+      </a>
+      <a class="social-btn" href="https://instagram.com/jpfiorilli" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        Instagram
+      </a>
+      <a class="social-btn" href="mailto:jpfiorilli@gmail.com">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Email
+      </a>
+    </div>
+  </div>
+
+  <div class="about-section">
+    <div class="about-section-title">La App</div>
+    <div class="about-app-card">
+      <div class="about-app-name">WC 2026 · Live Scores</div>
+      <div class="about-app-desc">
+        Marcadores en vivo, grupos, fixture completo y bracket para los 104 partidos del Mundial 2026 en USA, Canadá y México. Horarios en ART. Gratis, sin anuncios.
+      </div>
+      <div class="about-app-tags">
+        <span class="about-tag">48 equipos</span>
+        <span class="about-tag">12 grupos</span>
+        <span class="about-tag">104 partidos</span>
+        <span class="about-tag">Live · 30s</span>
+        <span class="about-tag">ART</span>
+        <span class="about-tag">Sin anuncios</span>
+      </div>
+      <button class="share-btn" onclick="shareApp()">
+        <svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Compartir app con amigos
+      </button>
+      <div class="share-copied" id="share-copied">✓ Link copiado al portapapeles</div>
+    </div>
+  </div>
+
+  <div class="about-footer">
+    Código abierto en
+    <a href="https://github.com/jpfiorilli/worldcup2026" target="_blank" rel="noopener">github.com/jpfiorilli/worldcup2026</a>
+    <br>Datos live vía ESPN · Diseño inspirado en FIFA WC 2026
+  </div>`;
+  document.getElementById('about-content').innerHTML=h;
+}
+
+function shareApp(){
+  const url='https://jpfiorilli.github.io/worldcup2026';
+  const txt='⚽ WC 2026 Live Scores — marcadores, grupos y bracket del Mundial 2026. Gratis, sin anuncios.';
+  /* Native share sheet on mobile */
+  if(navigator.share){
+    navigator.share({title:'WC 2026 · Live Scores',text:txt,url}).catch(()=>{});
+    return;
+  }
+  /* Fallback: copy to clipboard */
+  navigator.clipboard?.writeText(url+'\n'+txt).then(()=>{
+    const el=document.getElementById('share-copied');
+    if(el){el.classList.add('show');setTimeout(()=>el.classList.remove('show'),3000);}
+  }).catch(()=>{
+    /* Last resort: prompt */
+    prompt('Copiá este link:',url);
+  });
+}
+
 function switchPage(name,idx){
   curPage=name;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));

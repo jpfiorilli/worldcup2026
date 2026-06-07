@@ -417,17 +417,50 @@ const NORM={
 };
 function norm(n){return NORM[n]||n}
 
-async function fetchScores(){
-  const urls=[
-    'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldcup/scoreboard',
-    `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldcup/scoreboard?dates=${new Date().toISOString().slice(0,10).replace(/-/g,'')}`
-  ];
-  for(const url of urls){
-    try{
-      const r=await fetch(url);if(!r.ok) continue;
-      processESPN(await r.json());break;
-    }catch(e){console.warn('ESPN:',e.message)}
+let fetchFailCount=0;
+
+async function fetchWithTimeout(url,ms=8000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    const r=await fetch(url,{signal:ctrl.signal});
+    clearTimeout(tid);
+    return r;
+  }catch(e){
+    clearTimeout(tid);
+    throw e;
   }
+}
+
+async function fetchScores(){
+  /* Only attempt live fetch when the tournament is running (Jun 11 – Jul 20 2026) */
+  const now=new Date();
+  const tournStart=new Date('2026-06-11T00:00:00Z');
+  const tournEnd  =new Date('2026-07-20T23:59:00Z');
+  const inTournament=now>=tournStart&&now<=tournEnd;
+
+  if(inTournament){
+    const dateStr=now.toISOString().slice(0,10).replace(/-/g,'');
+    const urls=[
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldcup/scoreboard?dates=${dateStr}`,
+      'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldcup/scoreboard'
+    ];
+    let ok=false;
+    for(const url of urls){
+      try{
+        const r=await fetchWithTimeout(url,8000);
+        if(!r.ok) continue;
+        processESPN(await r.json());
+        ok=true;
+        fetchFailCount=0;
+        break;
+      }catch(e){
+        /* swallow silently — no console spam */
+      }
+    }
+    if(!ok) fetchFailCount++;
+  }
+
   buildStandings();
   lastFetch=new Date();
   renderAll();
@@ -537,8 +570,22 @@ function renderAll(){
   else if(curPage==='fixtures') renderFixtures();
   else if(curPage==='bracket') renderBracket();
   else if(curPage==='favs') renderFavs();
-  if(lastFetch) document.getElementById('last-upd').textContent=
-    `Actualizado: ${lastFetch.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} ART`;
+  if(lastFetch){
+    const now=new Date();
+    const tournStart=new Date('2026-06-11T00:00:00Z');
+    const preTourn=now<tournStart;
+    const el=document.getElementById('last-upd');
+    if(el){
+      if(preTourn){
+        const cd=countdown(tournStart.toISOString());
+        el.textContent=cd?`Torneo en: ${cd}`:'El torneo ya comenzó';
+      } else if(fetchFailCount>0){
+        el.textContent=`Sin datos live — reintentando…`;
+      } else {
+        el.textContent=`Actualizado: ${lastFetch.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} ART`;
+      }
+    }
+  }
 }
 
 function updatePill(){

@@ -530,7 +530,7 @@ body.fs-xl { zoom: 1.25; }
    DATA
    ═══════════════════════════════════════ */
 const GROUPS={
-  A:{n:"Grupo A",teams:["Mexico","Corea del Sur","Sudáfrica","Chequia"]},
+  A:{n:"Grupo A",teams:["Mexico","Corea del Sur","Sudáfrica","República Checa"]},
   B:{n:"Grupo B",teams:["Canada","Bosnia-Herzegovina","Qatar","Suiza"]},
   C:{n:"Grupo C",teams:["Brasil","Marruecos","Haiti","Escocia"]},
   D:{n:"Grupo D",teams:["Estados Unidos","Paraguay","Australia","Turquía"]},
@@ -545,7 +545,7 @@ const GROUPS={
 };
 const ALL_TEAMS=Object.values(GROUPS).flatMap(g=>g.teams).filter((v,i,a)=>a.indexOf(v)===i).sort();
 const FLAGS={
-  "Mexico":"🇲🇽","Corea del Sur":"🇰🇷","Sudáfrica":"🇿🇦","Chequia":"🇨🇿",
+  "Mexico":"🇲🇽","Corea del Sur":"🇰🇷","Sudáfrica":"🇿🇦","República Checa":"🇨🇿",
   "Canada":"🇨🇦","Bosnia-Herzegovina":"🇧🇦","Qatar":"🇶🇦","Suiza":"🇨🇭",
   "Brasil":"🇧🇷","Marruecos":"🇲🇦","Haiti":"🇭🇹","Escocia":"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
   "Estados Unidos":"🇺🇸","Paraguay":"🇵🇾","Australia":"🇦🇺","Turquía":"🇹🇷",
@@ -561,10 +561,10 @@ const FLAGS={
 const FIXTURES=[
   /* ── GROUP A ── */
   {id:1, g:"A",h:"Mexico",         a:"Sudáfrica",      utc:"2026-06-11T19:00:00Z",v:"Ciudad de México"},
-  {id:2, g:"A",h:"Corea del Sur",    a:"Chequia",           utc:"2026-06-12T02:00:00Z",v:"Zapopan"},
-  {id:3, g:"A",h:"Chequia",        a:"Sudáfrica",      utc:"2026-06-18T16:00:00Z",v:"Atlanta"},
+  {id:2, g:"A",h:"Corea del Sur",    a:"República Checa",           utc:"2026-06-12T02:00:00Z",v:"Zapopan"},
+  {id:3, g:"A",h:"República Checa",        a:"Sudáfrica",      utc:"2026-06-18T16:00:00Z",v:"Atlanta"},
   {id:4, g:"A",h:"Mexico",         a:"Corea del Sur",       utc:"2026-06-19T01:00:00Z",v:"Zapopan"},
-  {id:5, g:"A",h:"Chequia",        a:"Mexico",            utc:"2026-06-25T01:00:00Z",v:"Ciudad de México"},
+  {id:5, g:"A",h:"República Checa",        a:"Mexico",            utc:"2026-06-25T01:00:00Z",v:"Ciudad de México"},
   {id:6, g:"A",h:"Sudáfrica",   a:"Corea del Sur",       utc:"2026-06-25T01:00:00Z",v:"Monterrey"},
   /* ── GROUP B ── */
   {id:7, g:"B",h:"Canada",         a:"Bosnia-Herzegovina",utc:"2026-06-12T19:00:00Z",v:"Toronto"},

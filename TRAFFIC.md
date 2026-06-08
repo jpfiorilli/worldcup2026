@@ -1,21 +1,34 @@
-# 📊 Traffic Log — WC 2026 App
+# 📊 Traffic Log — Mundial 2026 by JPF
 
 Actualizado automáticamente cada día a las 06:00 UTC por GitHub Actions.
 
 - **App en vivo:** https://jpfiorilli.github.io/worldcup2026
 - **Repo:** https://github.com/jpfiorilli/worldcup2026
 
-### Columnas
-| Campo | Descripción |
-|---|---|
-| Vistas repo (14d) | Visitas a la página del repo en GitHub — ventana móvil de 14 días |
-| Únicos repo | Visitantes únicos del repo en los últimos 14 días |
-| App visits (total) | Visitas acumuladas a la app web desde el lanzamiento (vía CounterAPI) |
-| App shares | Veces que se presionó "Compartir app" desde el lanzamiento |
+---
+
+## 📈 Métricas diarias
+
+| Fecha | Visitas repo (14d) | Únicos repo | App visits (total) | Shares |
+|---|---|---|---|---|
+| 2026-06-08 | iniciando | iniciando | iniciando | iniciando |
 
 ---
 
-| Fecha | Vistas repo (14d) | Únicos repo | App visits (total) | App shares |
-|---|---|---|---|---|
-| 2026-06-07 | — | — | iniciando... | iniciando... |
-| 2026-06-07 | 0 | 0 | ? | ? |
+## 🗂 Uso de tabs (acumulado)
+
+Cada vez que alguien toca un tab, se cuenta. Valores acumulados desde el lanzamiento.
+
+| Fecha | Scores | Grupos | Fixture | Estadios | Bracket | Favs | Config |
+|---|---|---|---|---|---|---|---|
+| 2026-06-08 | — | — | — | — | — | — | — |
+
+---
+
+## 🌍 Regiones (acumulado, por timezone del visitante)
+
+Detectado automáticamente desde el timezone del navegador. Sin datos personales.
+
+| Fecha | América | Europa | África | Asia | Pacífico | Australia |
+|---|---|---|---|---|---|---|
+| 2026-06-08 | — | — | — | — | — | — |

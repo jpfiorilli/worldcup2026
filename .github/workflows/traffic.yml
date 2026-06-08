@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Fetch traffic data
+      - name: Fetch all counters
         id: traffic
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -23,33 +23,134 @@ jobs:
           DATE=$(date -u +"%Y-%m-%d")
           echo "date=$DATE" >> $GITHUB_OUTPUT
 
+          # GitHub repo views
           VIEWS=$(curl -s -H "Authorization: token $GH_TOKEN" \
             "https://api.github.com/repos/jpfiorilli/worldcup2026/traffic/views")
           TOTAL_VIEWS=$(echo $VIEWS | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count',0))")
           UNIQ_VIEWS=$(echo $VIEWS  | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('uniques',0))")
-
-          APP_VISITS=$(curl -s "https://api.counterapi.dev/v1/jpfiorilli-wc2026/visits" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count', d.get('value','?')))" 2>/dev/null || echo "?")
-          APP_SHARES=$(curl -s "https://api.counterapi.dev/v1/jpfiorilli-wc2026/shares" \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count', d.get('value','?')))" 2>/dev/null || echo "?")
-
           echo "total_views=$TOTAL_VIEWS" >> $GITHUB_OUTPUT
           echo "uniq_views=$UNIQ_VIEWS"   >> $GITHUB_OUTPUT
-          echo "app_visits=$APP_VISITS"   >> $GITHUB_OUTPUT
-          echo "app_shares=$APP_SHARES"   >> $GITHUB_OUTPUT
+
+          # Helper to fetch a CounterAPI counter
+          fetch_counter() {
+            curl -s "https://api.counterapi.dev/v1/jpfiorilli-wc2026/$1" \
+              | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count', d.get('value','0')))" 2>/dev/null || echo "0"
+          }
+
+          # App visits & shares
+          echo "app_visits=$(fetch_counter visits)"     >> $GITHUB_OUTPUT
+          echo "app_shares=$(fetch_counter shares)"     >> $GITHUB_OUTPUT
+
+          # Tab usage counters
+          echo "tab_scores=$(fetch_counter tab-scores)"       >> $GITHUB_OUTPUT
+          echo "tab_groups=$(fetch_counter tab-groups)"       >> $GITHUB_OUTPUT
+          echo "tab_fixtures=$(fetch_counter tab-fixtures)"   >> $GITHUB_OUTPUT
+          echo "tab_stadiums=$(fetch_counter tab-stadiums)"   >> $GITHUB_OUTPUT
+          echo "tab_bracket=$(fetch_counter tab-bracket)"     >> $GITHUB_OUTPUT
+          echo "tab_favs=$(fetch_counter tab-favs)"           >> $GITHUB_OUTPUT
+          echo "tab_about=$(fetch_counter tab-about)"         >> $GITHUB_OUTPUT
+
+          # Region counters (timezone-based)
+          echo "reg_america=$(fetch_counter region-america)"     >> $GITHUB_OUTPUT
+          echo "reg_europe=$(fetch_counter region-europe)"       >> $GITHUB_OUTPUT
+          echo "reg_africa=$(fetch_counter region-africa)"       >> $GITHUB_OUTPUT
+          echo "reg_asia=$(fetch_counter region-asia)"           >> $GITHUB_OUTPUT
+          echo "reg_pacific=$(fetch_counter region-pacific)"     >> $GITHUB_OUTPUT
+          echo "reg_australia=$(fetch_counter region-australia)" >> $GITHUB_OUTPUT
 
       - name: Update TRAFFIC.md
         env:
-          DATE:        ${{ steps.traffic.outputs.date }}
-          TOTAL_VIEWS: ${{ steps.traffic.outputs.total_views }}
-          UNIQ_VIEWS:  ${{ steps.traffic.outputs.uniq_views }}
-          APP_VISITS:  ${{ steps.traffic.outputs.app_visits }}
-          APP_SHARES:  ${{ steps.traffic.outputs.app_shares }}
+          DATE:          ${{ steps.traffic.outputs.date }}
+          TOTAL_VIEWS:   ${{ steps.traffic.outputs.total_views }}
+          UNIQ_VIEWS:    ${{ steps.traffic.outputs.uniq_views }}
+          APP_VISITS:    ${{ steps.traffic.outputs.app_visits }}
+          APP_SHARES:    ${{ steps.traffic.outputs.app_shares }}
+          TAB_SCORES:    ${{ steps.traffic.outputs.tab_scores }}
+          TAB_GROUPS:    ${{ steps.traffic.outputs.tab_groups }}
+          TAB_FIXTURES:  ${{ steps.traffic.outputs.tab_fixtures }}
+          TAB_STADIUMS:  ${{ steps.traffic.outputs.tab_stadiums }}
+          TAB_BRACKET:   ${{ steps.traffic.outputs.tab_bracket }}
+          TAB_FAVS:      ${{ steps.traffic.outputs.tab_favs }}
+          TAB_ABOUT:     ${{ steps.traffic.outputs.tab_about }}
+          REG_AMERICA:   ${{ steps.traffic.outputs.reg_america }}
+          REG_EUROPE:    ${{ steps.traffic.outputs.reg_europe }}
+          REG_AFRICA:    ${{ steps.traffic.outputs.reg_africa }}
+          REG_ASIA:      ${{ steps.traffic.outputs.reg_asia }}
+          REG_PACIFIC:   ${{ steps.traffic.outputs.reg_pacific }}
+          REG_AUSTRALIA: ${{ steps.traffic.outputs.reg_australia }}
         run: |
           if [ ! -f TRAFFIC.md ]; then
-            printf '# Trafico\n\n| Fecha | Vistas repo (14d) | Unicos repo | App visits | App shares |\n|---|---|---|---|---|\n' > TRAFFIC.md
+            cat > TRAFFIC.md << 'HEADER'
+# 📊 Traffic Log — Mundial 2026 by JPF
+
+Actualizado automáticamente cada día a las 06:00 UTC.
+
+- **App:** https://jpfiorilli.github.io/worldcup2026
+
+## Métricas diarias
+
+| Fecha | Visitas repo | Únicos | App visits | Shares |
+|---|---|---|---|---|
+
+## Uso de tabs (acumulado)
+
+| Fecha | Scores | Grupos | Fixture | Estadios | Bracket | Favs | Config |
+|---|---|---|---|---|---|---|---|
+
+## Regiones (acumulado, por timezone)
+
+| Fecha | América | Europa | África | Asia | Pacífico | Australia |
+|---|---|---|---|---|---|---|
+HEADER
           fi
-          echo "| $DATE | $TOTAL_VIEWS | $UNIQ_VIEWS | $APP_VISITS | $APP_SHARES |" >> TRAFFIC.md
+
+          # Append to each table section
+          python3 << 'PYEOF'
+          import os, re
+
+          date         = os.environ['DATE']
+          total_views  = os.environ['TOTAL_VIEWS']
+          uniq_views   = os.environ['UNIQ_VIEWS']
+          app_visits   = os.environ['APP_VISITS']
+          app_shares   = os.environ['APP_SHARES']
+          tab_scores   = os.environ['TAB_SCORES']
+          tab_groups   = os.environ['TAB_GROUPS']
+          tab_fixtures = os.environ['TAB_FIXTURES']
+          tab_stadiums = os.environ['TAB_STADIUMS']
+          tab_bracket  = os.environ['TAB_BRACKET']
+          tab_favs     = os.environ['TAB_FAVS']
+          tab_about    = os.environ['TAB_ABOUT']
+          reg_america  = os.environ['REG_AMERICA']
+          reg_europe   = os.environ['REG_EUROPE']
+          reg_africa   = os.environ['REG_AFRICA']
+          reg_asia     = os.environ['REG_ASIA']
+          reg_pacific  = os.environ['REG_PACIFIC']
+          reg_australia= os.environ['REG_AUSTRALIA']
+
+          with open('TRAFFIC.md', 'r') as f:
+              content = f.read()
+
+          row1 = f"| {date} | {total_views} | {uniq_views} | {app_visits} | {app_shares} |"
+          row2 = f"| {date} | {tab_scores} | {tab_groups} | {tab_fixtures} | {tab_stadiums} | {tab_bracket} | {tab_favs} | {tab_about} |"
+          row3 = f"| {date} | {reg_america} | {reg_europe} | {reg_africa} | {reg_asia} | {reg_pacific} | {reg_australia} |"
+
+          # Insert rows after last row of each table
+          def append_to_table(content, anchor, new_row):
+              idx = content.rfind(anchor)
+              if idx == -1: return content + '\n' + new_row
+              # find next blank line after anchor
+              end = content.find('\n\n', idx)
+              if end == -1: end = len(content)
+              return content[:end] + '\n' + new_row + content[end:]
+
+          content = append_to_table(content, '| Fecha | Visitas repo', row1)
+          content = append_to_table(content, '| Fecha | Scores', row2)
+          content = append_to_table(content, '| Fecha | América', row3)
+
+          with open('TRAFFIC.md', 'w') as f:
+              f.write(content)
+          print('TRAFFIC.md updated')
+          PYEOF
 
       - name: Commit and push
         run: |

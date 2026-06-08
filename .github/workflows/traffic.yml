@@ -21,13 +21,11 @@ jobs:
         run: |
           DATE=$(date -u +"%Y-%m-%d")
 
-          # ── GitHub repo traffic ──
           VIEWS=$(curl -s -H "Authorization: token $GH_TOKEN" \
             "https://api.github.com/repos/jpfiorilli/worldcup2026/traffic/views")
           TV=$(echo "$VIEWS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('count',0))" 2>/dev/null || echo "0")
           UV=$(echo "$VIEWS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('uniques',0))" 2>/dev/null || echo "0")
 
-          # ── CounterAPI helper ──
           cnt() {
             curl -s "https://api.counterapi.dev/v1/jpfiorilli-wc2026/$1" \
               | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('count',d.get('value','0')))" 2>/dev/null || echo "0"
@@ -49,65 +47,35 @@ jobs:
           R5=$(cnt region-pacific)
           R6=$(cnt region-australia)
 
-          # ── Build row strings ──
           ROW1="| $DATE | $TV | $UV | $AV | $AS |"
           ROW2="| $DATE | $T1 | $T2 | $T3 | $T4 | $T5 | $T6 | $T7 |"
           ROW3="| $DATE | $R1 | $R2 | $R3 | $R4 | $R5 | $R6 |"
 
-          # ── Create TRAFFIC.md if missing ──
           if [ ! -f TRAFFIC.md ]; then
-            cat > TRAFFIC.md << 'ENDHEADER'
-# 📊 Traffic Log — Mundial 2026 by JPF
-
-Actualizado automáticamente cada día a las 06:00 UTC.
-App: https://jpfiorilli.github.io/worldcup2026
-
-## Métricas diarias
-| Fecha | Visitas repo | Únicos | App visits | Shares |
-|---|---|---|---|---|
-
-## Uso de tabs
-| Fecha | Scores | Grupos | Fixture | Estadios | Bracket | Favs | Config |
-|---|---|---|---|---|---|---|---|
-
-## Regiones (timezone)
-| Fecha | América | Europa | África | Asia | Pacífico | Australia |
-|---|---|---|---|---|---|---|
-ENDHEADER
+            printf '# Traffic Log\n\n## Metricas diarias\n| Fecha | Visitas repo | Unicos | App visits | Shares |\n|---|---|---|---|---|\n\n## Uso de tabs\n| Fecha | Scores | Grupos | Fixture | Estadios | Bracket | Favs | Config |\n|---|---|---|---|---|---|---|---|\n\n## Regiones\n| Fecha | America | Europa | Africa | Asia | Pacifico | Australia |\n|---|---|---|---|---|---|---|\n' > TRAFFIC.md
           fi
 
-          # ── Append rows to each table ──
-          # For each table we find its last pipe-row and append after it
-          python3 - "$ROW1" "$ROW2" "$ROW3" << 'ENDPY'
+          python3 -c "
 import sys
+lines = open('TRAFFIC.md').readlines()
 
-row1, row2, row3 = sys.argv[1], sys.argv[2], sys.argv[3]
+def append_after_last(lines, marker, row):
+    idx = max((i for i,l in enumerate(lines) if marker in l and l.strip().startswith('|')), default=-1)
+    if idx == -1:
+        return lines + [row+'\n']
+    return lines[:idx+1] + [row+'\n'] + lines[idx+1:]
 
-with open('TRAFFIC.md', 'r') as f:
-    lines = f.readlines()
-
-def insert_after_last_pipe_row(lines, anchor, new_row):
-    last_idx = -1
-    for i, l in enumerate(lines):
-        if anchor in l and l.strip().startswith('|'):
-            last_idx = i
-    if last_idx == -1:
-        return lines + [new_row + '\n']
-    return lines[:last_idx+1] + [new_row + '\n'] + lines[last_idx+1:]
-
-lines = insert_after_last_pipe_row(lines, 'Visitas repo', row1)
-lines = insert_after_last_pipe_row(lines, 'Scores | Grupos', row2)
-lines = insert_after_last_pipe_row(lines, 'América', row3)
-
-with open('TRAFFIC.md', 'w') as f:
-    f.writelines(lines)
-print('Done')
-ENDPY
+lines = append_after_last(lines, 'Visitas repo', sys.argv[1])
+lines = append_after_last(lines, 'Scores | Grupos', sys.argv[2])
+lines = append_after_last(lines, 'America', sys.argv[3])
+open('TRAFFIC.md','w').writelines(lines)
+print('Updated TRAFFIC.md')
+" "$ROW1" "$ROW2" "$ROW3"
 
       - name: Commit and push
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add TRAFFIC.md
-          git diff --cached --quiet || git commit -m "📊 Traffic $(date -u +%Y-%m-%d)"
+          git diff --cached --quiet || git commit -m "Traffic $(date -u +%Y-%m-%d)"
           git push

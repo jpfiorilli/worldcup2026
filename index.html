@@ -812,42 +812,17 @@ async function fetchScores(){
   if(inTournament){
     let ok = false;
 
-    /* ── PRIMARY: football-data.org (proper API, reliable scores) ── */
+    /* ── PRIMARY: football-data.org via Apps Script proxy (avoids CORS) ── */
     try{
-      const r = await fetchWithTimeout(
-        'https://api.football-data.org/v4/competitions/WC/matches?status=LIVE,IN_PLAY,PAUSED',
-        8000,
-        {'X-Auth-Token': FDORG_KEY}
-      );
-      if(r.ok){
-        const json = await r.json();
-        if(json.matches && json.matches.length > 0){
-          processFDOrg(json.matches);
-          ok = true;
-          fetchFailCount = 0;
-        }
+      const today = now.toISOString().slice(0,10);
+      const proxyUrl = `https://script.google.com/macros/s/AKfycbwWFfE8Mg3NE233zQtlbEvksFTv0hNgoqkOgCviClRi4aqYokdKbjDoq298aNtlArR0BQ/exec?action=getScores&date=${today}&token=CDh5gAB_KCmUfq8vbHA63pd1FVCYNMW9hI9FwV_vWV4&callback=fd_cb_${Date.now()}`;
+      const matches = await fetchViaJSONP_FD(today);
+      if(matches && matches.length >= 0){
+        processFDOrg(matches);
+        ok = true;
+        fetchFailCount = 0;
       }
-    }catch(e){ /* fall through to ESPN */ }
-
-    /* If no live matches from fdorg, also fetch today's scheduled/finished */
-    if(!ok || Object.values(liveData).every(d=>d.status==='sched')){
-      try{
-        const today = now.toISOString().slice(0,10);
-        const r = await fetchWithTimeout(
-          `https://api.football-data.org/v4/competitions/WC/matches?dateFrom=${today}&dateTo=${today}`,
-          8000,
-          {'X-Auth-Token': FDORG_KEY}
-        );
-        if(r.ok){
-          const json = await r.json();
-          if(json.matches){
-            processFDOrg(json.matches);
-            ok = true;
-            fetchFailCount = 0;
-          }
-        }
-      }catch(e){ /* fall through to ESPN */ }
-    }
+    }catch(e){ console.warn('fdorg proxy error:', e.message); }
 
     /* ── FALLBACK: ESPN (no auth, but unreliable) ── */
     if(!ok){
@@ -873,6 +848,29 @@ async function fetchScores(){
   buildStandings();
   lastFetch=new Date();
   renderAll();
+}
+
+/* ── football-data.org via Apps Script JSONP proxy ── */
+function fetchViaJSONP_FD(date){
+  return new Promise((resolve, reject)=>{
+    const cbName = 'fd_cb_' + Date.now();
+    const script = document.createElement('script');
+    const timer = setTimeout(()=>{ cleanup(); reject(new Error('timeout')); }, 10000);
+    window[cbName] = function(data){
+      cleanup();
+      resolve(data.matches || []);
+    };
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+    }
+    const PROXY = 'https://script.google.com/macros/s/AKfycbwWFfE8Mg3NE233zQtlbEvksFTv0hNgoqkOgCviClRi4aqYokdKbjDoq298aNtlArR0BQ/exec';
+    const TOKEN = 'CDh5gAB_KCmUfq8vbHA63pd1FVCYNMW9hI9FwV_vWV4';
+    script.src = `${PROXY}?action=getScores&date=${date}&token=${encodeURIComponent(TOKEN)}&callback=${cbName}`;
+    script.onerror = ()=>{ cleanup(); reject(new Error('script error')); };
+    document.head.appendChild(script);
+  });
 }
 
 /* ── football-data.org response parser ── */
@@ -1169,7 +1167,7 @@ function liveCard(f){
       </div>
       <div class="score-center">
         <div class="score-nums">${d.hs}<span class="score-sep">–</span>${d.as}</div>
-        <div class="score-venue">🔴 En juego · ESPN</div>
+        <div class="score-venue">🔴 En juego · Live</div>
       </div>
       <div class="match-team right">
         <span class="match-team-flag">${fl(f.a)}</span>
@@ -1177,7 +1175,7 @@ function liveCard(f){
       </div>
     </div>
     <div style="text-align:center;padding:4px 12px 6px;font-size:9px;color:var(--muted);font-family:var(--font-b)">
-      Actualización automática cada 10s · posible demora ESPN ~2 min
+      Actualización automática cada 10s · datos vía football-data.org
     </div></div>`;
 }
 
@@ -1617,7 +1615,7 @@ function renderAbout(){
   <div class="about-footer">
     Código abierto en
     <a href="https://github.com/jpfiorilli/worldcup2026" target="_blank" rel="noopener">github.com/jpfiorilli/worldcup2026</a>
-    <br>Datos live vía ESPN · Diseño inspirado en FIFA WC 2026
+    <br>Datos live vía football-data.org · Diseño inspirado en FIFA WC 2026
   </div>`;
   document.getElementById('about-content').innerHTML=h;
   /* Sync font size button active state */

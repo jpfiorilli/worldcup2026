@@ -754,6 +754,8 @@ const BRACKET_ROUNDS=[
    ═══════════════════════════════════════ */
 let liveData={};
 let standings={};
+/* Clock simulation — tracks last ESPN minute + when we received it */
+const clockSync={};  // {matchId: {min, secs, receivedAt}}
 let bracketData={};   // matchId -> {h,a,hs,as,status,min}
 let lastFetch=null;
 let curPage='scores';
@@ -861,6 +863,16 @@ function processESPN(json){
     const effectiveStatus=isFinal?'ft':isLive?'live':passedKickoff?'live':'sched';
     const min=c.status?.displayClock||'';
     liveData[fix.id]={hs:sw?as_:hs,as:sw?hs:as_,status:effectiveStatus,min};
+    /* Update clock sync — parse minute from ESPN displayClock e.g. "45'" or "45+2'" */
+    if(effectiveStatus==='live'){
+      const rawMin = min.replace("'","").split('+')[0];
+      const parsedMin = parseInt(rawMin)||0;
+      const prev = clockSync[fix.id];
+      /* Only update if minute advanced (avoid resetting seconds on same-minute polls) */
+      if(!prev || parsedMin > (prev.min||0)){
+        clockSync[fix.id]={min:parsedMin, secs:0, receivedAt:Date.now()};
+      }
+    }
   }
   /* Also mark any fixture whose time has passed but ESPN didn't return at all */
   for(const f of FIXTURES){
@@ -1061,7 +1073,7 @@ function liveCard(f){
   return `<div class="match-live">
     <div class="match-live-hdr">
       <span class="match-badge">Grupo ${f.g} · ${f.v}</span>
-      <span class="match-min"><div class="live-dot"></div>${minLabel}</span>
+      <span class="match-min"><div class="live-dot"></div><span data-clock="${f.id}">${minLabel}</span></span>
     </div>
     <div class="match-body">
       <div class="match-team">
@@ -1138,7 +1150,7 @@ function renderGroups(){
       const d=liveData[f.id];
       let s;
       if(d&&d.status==='ft') s=`<span class="gms">${d.hs}–${d.as}</span>`;
-      else if(d&&d.status==='live') s=`<span class="gms l">${d.hs}–${d.as} <small>${d.min}</small></span>`;
+      else if(d&&d.status==='live') s=`<span class="gms l">${d.hs}–${d.as} <small data-clock="${f.id}">${d.min}</small></span>`;
       else{
         const cd=countdown(f.utc);
         s=`<span class="gms s">${artDate(f.utc)} ${artTime(f.utc)}${cd?` <span style="color:var(--gold);font-size:9px">(${cd})</span>`:''}</span>`;
@@ -1172,7 +1184,7 @@ function fixtureCard(f){
   if(d&&d.status==='ft'){
     mid=`<div class="mc-center"><div class="mc-score">${d.hs}–${d.as}</div><div class="mc-time">FT · ${f.v}</div></div>`;
   } else if(d&&d.status==='live'){
-    mid=`<div class="mc-center"><div class="mc-score live-s">${d.hs}–${d.as}</div><div class="mc-time" style="color:var(--live)">${d.min}' · ${f.v}</div></div>`;
+    mid=`<div class="mc-center"><div class="mc-score live-s">${d.hs}–${d.as}</div><div class="mc-time" style="color:var(--live)"><span data-clock="${f.id}">${d.min||''}</span> · ${f.v}</div></div>`;
   } else {
     const cd=countdown(f.utc);const soon=isSoon(f.utc);
     mid=`<div class="mc-center">
@@ -1355,6 +1367,21 @@ function renderFavs(){
 /* ═══════════════════════════════════════
    COUNTDOWN TICKER — updates every second
    ═══════════════════════════════════════ */
+function tickMatchClocks(){
+  for(const [id, sync] of Object.entries(clockSync)){
+    const d = liveData[id];
+    if(!d || d.status!=='live') continue;
+    const elapsed = Math.floor((Date.now() - sync.receivedAt) / 1000);
+    const totalSecs = sync.min * 60 + elapsed;
+    const dispMin = Math.min(Math.floor(totalSecs/60), 90);
+    const dispSec = totalSecs % 60;
+    const dispStr = `${dispMin}'${String(dispSec).padStart(2,'0')}`;
+    document.querySelectorAll(`[data-clock="${id}"]`).forEach(el=>{
+      el.textContent = dispStr;
+    });
+  }
+}
+
 function tickCountdowns(){
   document.querySelectorAll('[data-utc]').forEach(el=>{
     const cd=countdown(el.dataset.utc);
@@ -1609,7 +1636,7 @@ function smartPoll(){
   setTimeout(()=>{ fetchScores().then(smartPoll); }, interval);
 }
 fetchScores().then(smartPoll);
-setInterval(tickCountdowns,1000);
+setInterval(()=>{ tickMatchClocks(); tickCountdowns(); }, 1000);
 /* Track this visit — fire and forget */
 trackVisit();
 

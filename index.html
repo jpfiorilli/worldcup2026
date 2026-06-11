@@ -755,9 +755,7 @@ const BRACKET_ROUNDS=[
 let liveData={};
 let standings={};
 const FDORG_KEY='98a4e20e82db481882a8bbe75057beaf'; // football-data.org
-/* Scores proxy — set this to your deployed Apps Script URL */
-const SCORES_PROXY_URL = ''; // ← paste your Apps Script URL here after deploying scores_proxy.gs
-const SCORES_PROXY_TOKEN = 'wc2026scores';
+/* football-data.org — direct fetch, CORS supported */
 /* Clock simulation — tracks last ESPN minute + when we received it */
 const clockSync={};  // {matchId: {min, secs, receivedAt}}
 let bracketData={};   // matchId -> {h,a,hs,as,status,min}
@@ -815,16 +813,23 @@ async function fetchScores(){
   if(inTournament){
     let ok = false;
 
-    /* ── PRIMARY: football-data.org via Apps Script proxy (avoids CORS) ── */
-    if(SCORES_PROXY_URL) try{
+    /* ── PRIMARY: football-data.org (supports CORS natively) ── */
+    try{
       const today = now.toISOString().slice(0,10);
-      const matches = await fetchViaJSONP_FD(today);
-      if(matches && matches.length >= 0){
-        processFDOrg(matches);
-        ok = true;
-        fetchFailCount = 0;
+      const r = await fetchWithTimeout(
+        `https://api.football-data.org/v4/competitions/WC/matches?dateFrom=${today}&dateTo=${today}`,
+        8000,
+        {'X-Auth-Token': FDORG_KEY}
+      );
+      if(r.ok){
+        const json = await r.json();
+        if(json.matches){
+          processFDOrg(json.matches);
+          ok = true;
+          fetchFailCount = 0;
+        }
       }
-    }catch(e){ console.warn('fdorg proxy error:', e.message); }
+    }catch(e){ console.warn('fdorg error:', e.message); }
 
     /* ── FALLBACK: ESPN (no auth, but unreliable) ── */
     if(!ok){
@@ -852,28 +857,7 @@ async function fetchScores(){
   renderAll();
 }
 
-/* ── football-data.org via Apps Script JSONP proxy ── */
-function fetchViaJSONP_FD(date){
-  return new Promise((resolve, reject)=>{
-    const cbName = 'fd_cb_' + Date.now();
-    const script = document.createElement('script');
-    const timer = setTimeout(()=>{ cleanup(); reject(new Error('timeout')); }, 10000);
-    window[cbName] = function(data){
-      cleanup();
-      resolve(data.matches || []);
-    };
-    function cleanup(){
-      clearTimeout(timer);
-      delete window[cbName];
-      if(script.parentNode) script.parentNode.removeChild(script);
-    }
-    const PROXY = SCORES_PROXY_URL;
-    const TOKEN = SCORES_PROXY_TOKEN;
-    script.src = `${PROXY}?date=${date}&token=${encodeURIComponent(TOKEN)}&callback=${cbName}`;
-    script.onerror = ()=>{ cleanup(); reject(new Error('script error')); };
-    document.head.appendChild(script);
-  });
-}
+/* football-data.org — fetched directly */
 
 /* ── football-data.org response parser ── */
 function processFDOrg(matches){

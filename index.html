@@ -754,6 +754,7 @@ const BRACKET_ROUNDS=[
    ═══════════════════════════════════════ */
 let liveData={};
 let standings={};
+const FDORG_KEY="98a4e20e82db481882a8bbe75057beaf"; // football-data.org API key
 /* Clock simulation — tracks last ESPN minute + when we received it */
 const clockSync={};  // {matchId: {min, secs, receivedAt}}
 let bracketData={};   // matchId -> {h,a,hs,as,status,min}
@@ -803,39 +804,125 @@ async function fetchWithTimeout(url,ms=8000){
 }
 
 async function fetchScores(){
-  /* Only attempt live fetch when the tournament is running (Jun 11 – Jul 20 2026) */
   const now=new Date();
   const tournStart=new Date('2026-06-11T00:00:00Z');
   const tournEnd  =new Date('2026-07-20T23:59:00Z');
   const inTournament=now>=tournStart&&now<=tournEnd;
 
   if(inTournament){
-    const dateStr=now.toISOString().slice(0,10).replace(/-/g,'');
-    const urls=[
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
-      'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard',
-      'https://site.api.espn.com/apis/v2/scoreboard/header?sport=soccer&league=fifa.world',
-    ];
-    let ok=false;
-    for(const url of urls){
-      try{
-        const r=await fetchWithTimeout(url,8000);
-        if(!r.ok) continue;
-        processESPN(await r.json());
-        ok=true;
-        fetchFailCount=0;
-        break;
-      }catch(e){
-        /* swallow silently — no console spam */
+    let ok = false;
+
+    /* ── PRIMARY: football-data.org (proper API, reliable scores) ── */
+    try{
+      const r = await fetchWithTimeout(
+        'https://api.football-data.org/v4/competitions/WC/matches?status=LIVE,IN_PLAY,PAUSED',
+        8000,
+        {'X-Auth-Token': FDORG_KEY}
+      );
+      if(r.ok){
+        const json = await r.json();
+        if(json.matches && json.matches.length > 0){
+          processFDOrg(json.matches);
+          ok = true;
+          fetchFailCount = 0;
+        }
       }
+    }catch(e){ /* fall through to ESPN */ }
+
+    /* If no live matches from fdorg, also fetch today's scheduled/finished */
+    if(!ok || Object.values(liveData).every(d=>d.status==='sched')){
+      try{
+        const today = now.toISOString().slice(0,10);
+        const r = await fetchWithTimeout(
+          `https://api.football-data.org/v4/competitions/WC/matches?dateFrom=${today}&dateTo=${today}`,
+          8000,
+          {'X-Auth-Token': FDORG_KEY}
+        );
+        if(r.ok){
+          const json = await r.json();
+          if(json.matches){
+            processFDOrg(json.matches);
+            ok = true;
+            fetchFailCount = 0;
+          }
+        }
+      }catch(e){ /* fall through to ESPN */ }
     }
-    if(!ok) fetchFailCount++;
+
+    /* ── FALLBACK: ESPN (no auth, but unreliable) ── */
+    if(!ok){
+      const dateStr=now.toISOString().slice(0,10).replace(/-/g,'');
+      const urls=[
+        `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
+        'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard',
+      ];
+      for(const url of urls){
+        try{
+          const r=await fetchWithTimeout(url,8000);
+          if(!r.ok) continue;
+          processESPN(await r.json());
+          ok=true;
+          fetchFailCount=0;
+          break;
+        }catch(e){}
+      }
+      if(!ok) fetchFailCount++;
+    }
   }
 
   buildStandings();
   lastFetch=new Date();
   renderAll();
 }
+
+/* ── football-data.org response parser ── */
+function processFDOrg(matches){
+  const now = new Date();
+  for(const m of matches){
+    const hn = normFD(m.homeTeam?.name||m.homeTeam?.shortName||'');
+    const an = normFD(m.awayTeam?.name||m.awayTeam?.shortName||'');
+    const st = m.status||'';
+    const isLive  = ['IN_PLAY','PAUSED','HALFTIME'].includes(st);
+    const isFinal = ['FINISHED','AWARDED'].includes(st);
+    const hs = m.score?.fullTime?.home ?? m.score?.halfTime?.home ?? 0;
+    const as_ = m.score?.fullTime?.away ?? m.score?.halfTime?.away ?? 0;
+    const fix = FIXTURES.find(f=>(f.h===hn&&f.a===an)||(f.h===an&&f.a===hn));
+    if(!fix) continue;
+    const sw = fix.h===an;
+    const kickoff = new Date(fix.utc);
+    const passedKickoff = now > kickoff;
+    const effectiveStatus = isFinal?'ft': isLive?'live': passedKickoff?'live':'sched';
+    const min = m.minute ? `${m.minute}'` : '';
+    liveData[fix.id] = {hs:sw?as_:hs, as:sw?hs:as_, status:effectiveStatus, min};
+    if(effectiveStatus==='live'){
+      const parsedMin = parseInt(m.minute)||0;
+      const prev = clockSync[fix.id];
+      if(!prev || parsedMin > (prev.min||0)){
+        clockSync[fix.id]={min:parsedMin, secs:0, receivedAt:Date.now()};
+      }
+    }
+  }
+}
+
+/* football-data.org team name → our Spanish names */
+const FDORG_NORM = {
+  'Mexico':'México','South Korea':'Corea del Sur','South Africa':'Sudáfrica',
+  'Czech Republic':'República Checa','Bosnia and Herzegovina':'Bosnia-Herzegovina',
+  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haití',
+  'Scotland':'Escocia','United States':'Estados Unidos','Paraguay':'Paraguay',
+  'Australia':'Australia','Turkey':'Turquía','Germany':'Alemania',
+  "Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador','Netherlands':'Países Bajos',
+  'Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez','Belgium':'Bélgica',
+  'Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda','Spain':'España',
+  'Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita','Cape Verde':'Cabo Verde',
+  'France':'Francia','Senegal':'Senegal','Iraq':'Iraq','Norway':'Noruega',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','Colombia':'Colombia','DR Congo':'Congo DR',
+  'Uzbekistan':'Uzbekistán','England':'Inglaterra','Croatia':'Croacia',
+  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Canada':'Canadá',
+  'Qatar':'Qatar',
+};
+function normFD(n){ return FDORG_NORM[n] || norm(n) || n; }
 
 function processESPN(json){
   /* Handle both /scoreboard (events[]) and /header (sports[].leagues[].events[]) formats */

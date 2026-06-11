@@ -836,6 +836,7 @@ async function fetchScores(){
 
 function processESPN(json){
   liveData={};
+  const now=new Date();
   for(const ev of(json.events||[])){
     const c=ev.competitions?.[0];if(!c) continue;
     const comps=c.competitors||[];
@@ -845,13 +846,24 @@ function processESPN(json){
     const hn=norm(hc.team?.displayName||hc.team?.name||'');
     const an=norm(ac.team?.displayName||ac.team?.name||'');
     const st=c.status?.type?.name||'';
-    const isLive=st.includes('IN_PROGRESS');
-    const isFinal=st.includes('FINAL')||st.includes('FULL')||st.includes('FT');
+    const isLive=st.includes('IN_PROGRESS')||st.includes('HALFTIME')||st.includes('HALF_TIME');
+    const isFinal=st.includes('FINAL')||st.includes('FULL')||st.includes('FT')||st.includes('FULL_TIME');
     const hs=parseInt(hc.score||'0')||0, as_=parseInt(ac.score||'0')||0;
     const fix=FIXTURES.find(f=>(f.h===hn&&f.a===an)||(f.h===an&&f.a===hn));
     if(!fix) continue;
     const sw=fix.h===an;
-    liveData[fix.id]={hs:sw?as_:hs,as:sw?hs:as_,status:isFinal?'ft':isLive?'live':'sched',min:c.status?.displayClock||''};
+    /* If ESPN still shows scheduled but kick-off has passed → treat as live (ESPN data lag) */
+    const kickoff=new Date(fix.utc);
+    const passedKickoff=now>kickoff;
+    const effectiveStatus=isFinal?'ft':isLive?'live':passedKickoff?'live':'sched';
+    const min=c.status?.displayClock||'';
+    liveData[fix.id]={hs:sw?as_:hs,as:sw?hs:as_,status:effectiveStatus,min};
+  }
+  /* Also mark any fixture whose time has passed but ESPN didn't return at all */
+  for(const f of FIXTURES){
+    if(!liveData[f.id] && new Date(f.utc)<now && (now-new Date(f.utc))<120*60*1000){
+      liveData[f.id]={hs:0,as:0,status:'live',min:''};
+    }
   }
 }
 

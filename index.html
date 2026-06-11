@@ -811,7 +811,8 @@ async function fetchScores(){
     const dateStr=now.toISOString().slice(0,10).replace(/-/g,'');
     const urls=[
       `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
-      'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'
+      'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard',
+      'https://site.api.espn.com/apis/v2/scoreboard/header?sport=soccer&league=fifa.world',
     ];
     let ok=false;
     for(const url of urls){
@@ -835,9 +836,11 @@ async function fetchScores(){
 }
 
 function processESPN(json){
+  /* Handle both /scoreboard (events[]) and /header (sports[].leagues[].events[]) formats */
+  let events = json.events || json.sports?.[0]?.leagues?.[0]?.events || [];
   liveData={};
   const now=new Date();
-  for(const ev of(json.events||[])){
+  for(const ev of events){
     const c=ev.competitions?.[0];if(!c) continue;
     const comps=c.competitors||[];
     const hc=comps.find(x=>x.homeAway==='home')||comps[0];
@@ -1054,10 +1057,11 @@ function renderScores(){
 function liveCard(f){
   const d=liveData[f.id];
   const fh=isFav(f.h),fa=isFav(f.a);
+  const minLabel = d.min && d.min!=='0\'' ? d.min : 'En vivo';
   return `<div class="match-live">
     <div class="match-live-hdr">
       <span class="match-badge">Grupo ${f.g} · ${f.v}</span>
-      <span class="match-min"><div class="live-dot"></div>${d.min||'En vivo'}</span>
+      <span class="match-min"><div class="live-dot"></div>${minLabel}</span>
     </div>
     <div class="match-body">
       <div class="match-team">
@@ -1066,12 +1070,15 @@ function liveCard(f){
       </div>
       <div class="score-center">
         <div class="score-nums">${d.hs}<span class="score-sep">–</span>${d.as}</div>
-        <div class="score-venue">En juego</div>
+        <div class="score-venue">🔴 En juego · ESPN</div>
       </div>
       <div class="match-team right">
         <span class="match-team-flag">${fl(f.a)}</span>
         <span class="match-team-name">${fa?'⭐ ':''}${f.a}</span>
       </div>
+    </div>
+    <div style="text-align:center;padding:4px 12px 6px;font-size:9px;color:var(--muted);font-family:var(--font-b)">
+      Actualización automática cada 10s · posible demora ESPN ~2 min
     </div></div>`;
 }
 
@@ -1592,7 +1599,16 @@ try{const saved=localStorage.getItem('wc26_theme');if(saved) applyTheme(saved);}
    INIT
    ═══════════════════════════════════════ */
 fetchScores();
-setInterval(fetchScores,30000);
+/* Smart polling — 10s when matches are live or during match hours, 30s otherwise */
+function smartPoll(){
+  const now = new Date();
+  const h = now.getUTCHours();
+  const hasLive = Object.values(liveData).some(d=>d.status==='live');
+  const matchHours = h>=13 || h<=5; // covers all WC kick-offs UTC
+  const interval = (hasLive || matchHours) ? 10000 : 30000;
+  setTimeout(()=>{ fetchScores().then(smartPoll); }, interval);
+}
+fetchScores().then(smartPoll);
 setInterval(tickCountdowns,1000);
 /* Track this visit — fire and forget */
 trackVisit();

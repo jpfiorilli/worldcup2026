@@ -754,7 +754,10 @@ const BRACKET_ROUNDS=[
    ═══════════════════════════════════════ */
 let liveData={};
 let standings={};
-const FDORG_KEY="98a4e20e82db481882a8bbe75057beaf"; // football-data.org API key
+const FDORG_KEY='98a4e20e82db481882a8bbe75057beaf'; // football-data.org
+/* Scores proxy — set this to your deployed Apps Script URL */
+const SCORES_PROXY_URL = ''; // ← paste your Apps Script URL here after deploying scores_proxy.gs
+const SCORES_PROXY_TOKEN = 'wc2026scores';
 /* Clock simulation — tracks last ESPN minute + when we received it */
 const clockSync={};  // {matchId: {min, secs, receivedAt}}
 let bracketData={};   // matchId -> {h,a,hs,as,status,min}
@@ -813,9 +816,8 @@ async function fetchScores(){
     let ok = false;
 
     /* ── PRIMARY: football-data.org via Apps Script proxy (avoids CORS) ── */
-    try{
+    if(SCORES_PROXY_URL) try{
       const today = now.toISOString().slice(0,10);
-      const proxyUrl = `https://script.google.com/macros/s/AKfycbwWFfE8Mg3NE233zQtlbEvksFTv0hNgoqkOgCviClRi4aqYokdKbjDoq298aNtlArR0BQ/exec?action=getScores&date=${today}&token=CDh5gAB_KCmUfq8vbHA63pd1FVCYNMW9hI9FwV_vWV4&callback=fd_cb_${Date.now()}`;
       const matches = await fetchViaJSONP_FD(today);
       if(matches && matches.length >= 0){
         processFDOrg(matches);
@@ -865,9 +867,9 @@ function fetchViaJSONP_FD(date){
       delete window[cbName];
       if(script.parentNode) script.parentNode.removeChild(script);
     }
-    const PROXY = 'https://script.google.com/macros/s/AKfycbwWFfE8Mg3NE233zQtlbEvksFTv0hNgoqkOgCviClRi4aqYokdKbjDoq298aNtlArR0BQ/exec';
-    const TOKEN = 'CDh5gAB_KCmUfq8vbHA63pd1FVCYNMW9hI9FwV_vWV4';
-    script.src = `${PROXY}?action=getScores&date=${date}&token=${encodeURIComponent(TOKEN)}&callback=${cbName}`;
+    const PROXY = SCORES_PROXY_URL;
+    const TOKEN = SCORES_PROXY_TOKEN;
+    script.src = `${PROXY}?date=${date}&token=${encodeURIComponent(TOKEN)}&callback=${cbName}`;
     script.onerror = ()=>{ cleanup(); reject(new Error('script error')); };
     document.head.appendChild(script);
   });

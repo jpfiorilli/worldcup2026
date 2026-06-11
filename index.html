@@ -810,8 +810,8 @@ async function fetchScores(){
   if(inTournament){
     const dateStr=now.toISOString().slice(0,10).replace(/-/g,'');
     const urls=[
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldcup/scoreboard?dates=${dateStr}`,
-      'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.worldcup/scoreboard'
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
+      'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard'
     ];
     let ok=false;
     for(const url of urls){

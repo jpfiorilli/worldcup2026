@@ -763,9 +763,20 @@ const BRACKET_ROUNDS=[
 ];
 
 /* ═══════════════════════════════════════
+   STATIC RESULTS — completed matches
+   Keyed by fixture id. Updated as games finish.
+   Live API data overrides these for ongoing/today's matches.
+   ═══════════════════════════════════════ */
+const STATIC_RESULTS = {
+  // Jornada 1 — 11 Jun 2026
+  1: {hs:2, as:0, status:'ft', min:'90+2\'', src:'static'},  // México 2-0 Sudáfrica  (Quiñones 9', Jiménez 67')
+  2: {hs:2, as:1, status:'ft', min:'90+6\'', src:'static'},  // Corea del Sur 2-1 República Checa  (Hwang 67', Oh 80' / Krejčí 59')
+};
+
+/* ═══════════════════════════════════════
    STATE
    ═══════════════════════════════════════ */
-let liveData={};
+let liveData = Object.assign({}, STATIC_RESULTS);
 let standings={};
 const FDORG_KEY='98a4e20e82db481882a8bbe75057beaf'; // football-data.org
 /* football-data.org — direct fetch, CORS supported */
@@ -829,8 +840,9 @@ async function fetchScores(){
     /* ── PRIMARY: football-data.org (supports CORS natively) ── */
     try{
       const today = now.toISOString().slice(0,10);
+      const tournStartDate = '2026-06-11';
       const r = await fetchWithTimeout(
-        `https://api.football-data.org/v4/competitions/WC/matches?dateFrom=${today}&dateTo=${today}`,
+        `https://api.football-data.org/v4/competitions/WC/matches?dateFrom=${tournStartDate}&dateTo=${today}`,
         8000,
         {'X-Auth-Token': FDORG_KEY}
       );
@@ -876,10 +888,8 @@ async function fetchScores(){
 function processFDOrg(matches){
   const now = new Date();
   /* Clear today's entries first to avoid stale 'live' persisting after a match ends */
-  const todayStr = now.toISOString().slice(0,10);
-  for(const f of FIXTURES){
-    if(f.utc.slice(0,10)===todayStr) delete liveData[f.id];
-  }
+  /* Reseed from static results, then API data will override */
+  liveData = Object.assign({}, STATIC_RESULTS);
   for(const m of matches){
     const hn = normFD(m.homeTeam?.name||m.homeTeam?.shortName||'');
     const an = normFD(m.awayTeam?.name||m.awayTeam?.shortName||'');
@@ -959,7 +969,7 @@ function normESPN(n){ return ESPN_NORM[n] || n; }
 function processESPN(json){
   /* Handle both /scoreboard (events[]) and /header (sports[].leagues[].events[]) formats */
   let events = json.events || json.sports?.[0]?.leagues?.[0]?.events || [];
-  liveData={};
+  liveData = Object.assign({}, STATIC_RESULTS);
   const now=new Date();
   for(const ev of events){
     const c=ev.competitions?.[0];if(!c) continue;

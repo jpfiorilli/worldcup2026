@@ -1030,6 +1030,31 @@ function buildStandings(){
   }
   for(const k of Object.keys(standings))
     standings[k].sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf);
+  populateBracketFromStandings();
+}
+
+/* Fill R32 bracket slots once a group's 6 matches are all finished */
+function populateBracketFromStandings(){
+  const labelRe=/^(\d+)([A-L]) vs (\d+)([A-L])$/;
+  const r32=BRACKET_ROUNDS[0];
+  for(const m of r32.matches){
+    if(bracketData[m.id]?.status==='ft'||bracketData[m.id]?.status==='live') continue;
+    const match=labelRe.exec(m.label);
+    if(!match) continue;
+    const p1=parseInt(match[1])-1,g1=match[2];
+    const p2=parseInt(match[3])-1,g2=match[4];
+    const g1fixes=FIXTURES.filter(f=>f.g===g1);
+    const g2fixes=FIXTURES.filter(f=>f.g===g2);
+    const g1done=g1fixes.length>0&&g1fixes.every(f=>liveData[f.id]?.status==='ft');
+    const g2done=g2fixes.length>0&&g2fixes.every(f=>liveData[f.id]?.status==='ft');
+    if(!g1done||!g2done) continue;
+    const st1=standings[g1],st2=standings[g2];
+    if(!st1||!st2) continue;
+    const t1=st1[p1]?.t,t2=st2[p2]?.t;
+    if(!t1||!t2) continue;
+    if(!bracketData[m.id]) bracketData[m.id]={h:t1,a:t2,hs:0,as:0,status:'sched',min:''};
+    else{bracketData[m.id].h=t1;bracketData[m.id].a=t2;}
+  }
 }
 
 /* Qualification status per team */
@@ -1042,8 +1067,8 @@ function getQualStatus(grp,idx,row,gStandings){
     if(idx<2) return 'q';
     return 'elim'; // 3rd/4th determined post-group comparing all 3rds
   }
-  // Mid-tournament heuristics
-  const maxRemaining=(2-row.p)*3;
+  // Mid-tournament heuristics (each team plays 3 group games)
+  const maxRemaining=(3-row.p)*3;
   const r3=gStandings[2]?.pts||0;
   if(idx<2&&row.pts>r3+maxRemaining) return 'q'; // mathematically through
   if(idx>=2){

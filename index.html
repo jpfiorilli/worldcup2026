@@ -780,22 +780,47 @@ function toggleFav(t){
    ESPN FEED
    ═══════════════════════════════════════ */
 const NORM={
-  'USA':'United States','US':'United States','USMNT':'United States','United States of America':'United States',
+  'USA':'Estados Unidos','US':'Estados Unidos','USMNT':'Estados Unidos','United States of America':'Estados Unidos','United States':'Estados Unidos',
+  'South Korea':'Corea del Sur','Korea Republic':'Corea del Sur','Republic of Korea':'Corea del Sur',
+  'South Africa':'Sudáfrica',
+  'Czech Republic':'República Checa','Czechia':'República Checa',
   'Bosnia & Herzegovina':'Bosnia-Herzegovina','Bosnia and Herzegovina':'Bosnia-Herzegovina',
-  'Korea Republic':'South Korea','Republic of Korea':'South Korea',
-  "Costa de Marfil":'Ivory Coast',"Costa de Marfil":'Ivory Coast','Cote dIvoire':'Ivory Coast',
-  'IR Iran':'Iran','Czech Republic':'Czechia','Türkiye':'Turkey','Turkiye':'Turkey',
-  'Saudi Arabia':'Saudi Arabia','KSA':'Saudi Arabia'
+  'Switzerland':'Suiza',
+  'Brazil':'Brasil',
+  'Morocco':'Marruecos',
+  'Scotland':'Escocia',
+  'Turkey':'Turquía','Türkiye':'Turquía','Turkiye':'Turquía',
+  'Germany':'Alemania',
+  "Ivory Coast":'Costa de Marfil',"Côte d'Ivoire":'Costa de Marfil','Cote dIvoire':'Costa de Marfil',
+  'Netherlands':'Países Bajos','Holland':'Países Bajos',
+  'Japan':'Japón',
+  'Sweden':'Suecia',
+  'Tunisia':'Túnez',
+  'Belgium':'Bélgica',
+  'Egypt':'Egipto',
+  'New Zealand':'Nueva Zelanda',
+  'Spain':'España',
+  'Saudi Arabia':'Arabia Saudita','KSA':'Arabia Saudita',
+  'Cape Verde':'Cabo Verde',
+  'France':'Francia',
+  'Norway':'Noruega',
+  'Algeria':'Argelia',
+  'Jordan':'Jordania',
+  'DR Congo':'Congo DR',
+  'Croatia':'Croacia',
+  'Panama':'Panamá',
+  'England':'Inglaterra',
+  'IR Iran':'Iran',
 };
 function norm(n){return NORM[n]||n}
 
 let fetchFailCount=0;
 
-async function fetchWithTimeout(url,ms=8000){
+async function fetchWithTimeout(url,ms=8000,headers={}){
   const ctrl=new AbortController();
   const tid=setTimeout(()=>ctrl.abort(),ms);
   try{
-    const r=await fetch(url,{signal:ctrl.signal});
+    const r=await fetch(url,{signal:ctrl.signal,headers});
     clearTimeout(tid);
     return r;
   }catch(e){
@@ -817,7 +842,7 @@ async function fetchScores(){
     try{
       const today = now.toISOString().slice(0,10);
       const r = await fetchWithTimeout(
-        `https://api.football-data.org/v4/competitions/WC/matches?dateFrom=${today}&dateTo=${today}`,
+        `https://api.football-data.org/v4/competitions/WC/matches?dateFrom=2026-06-11&dateTo=${today}`,
         8000,
         {'X-Auth-Token': FDORG_KEY}
       );
@@ -890,29 +915,27 @@ function processFDOrg(matches){
 
 /* football-data.org team name → our Spanish names */
 const FDORG_NORM = {
-  'Mexico':'México','South Korea':'Corea del Sur','South Africa':'Sudáfrica',
+  'South Korea':'Corea del Sur','South Africa':'Sudáfrica',
   'Czech Republic':'República Checa','Bosnia and Herzegovina':'Bosnia-Herzegovina',
-  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haití',
-  'Scotland':'Escocia','United States':'Estados Unidos','Paraguay':'Paraguay',
-  'Australia':'Australia','Turkey':'Turquía','Germany':'Alemania',
-  "Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador','Netherlands':'Países Bajos',
+  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos',
+  'Scotland':'Escocia','United States':'Estados Unidos',
+  'Turkey':'Turquía','Germany':'Alemania',
+  "Côte d'Ivoire":'Costa de Marfil','Netherlands':'Países Bajos',
   'Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez','Belgium':'Bélgica',
-  'Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda','Spain':'España',
-  'Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita','Cape Verde':'Cabo Verde',
-  'France':'Francia','Senegal':'Senegal','Iraq':'Iraq','Norway':'Noruega',
-  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
-  'Portugal':'Portugal','Colombia':'Colombia','DR Congo':'Congo DR',
-  'Uzbekistan':'Uzbekistán','England':'Inglaterra','Croatia':'Croacia',
-  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Canada':'Canadá',
-  'Qatar':'Qatar',
+  'Egypt':'Egipto','New Zealand':'Nueva Zelanda','Spain':'España',
+  'Saudi Arabia':'Arabia Saudita','Cape Verde':'Cabo Verde',
+  'France':'Francia','Norway':'Noruega','Algeria':'Argelia','Jordan':'Jordania',
+  'Portugal':'Portugal','DR Congo':'Congo DR',
+  'England':'Inglaterra','Croatia':'Croacia',
+  'Panama':'Panamá','Curacao':'Curaçao',
 };
-function normFD(n){ return FDORG_NORM[n] || norm(n) || n; }
+function normFD(n){ return FDORG_NORM[n] || n; }
 
 function processESPN(json){
   /* Handle both /scoreboard (events[]) and /header (sports[].leagues[].events[]) formats */
   let events = json.events || json.sports?.[0]?.leagues?.[0]?.events || [];
-  liveData={};
   const now=new Date();
+  const seen=new Set();
   for(const ev of events){
     const c=ev.competitions?.[0];if(!c) continue;
     const comps=c.competitors||[];
@@ -934,6 +957,7 @@ function processESPN(json){
     const effectiveStatus=isFinal?'ft':isLive?'live':passedKickoff?'live':'sched';
     const min=c.status?.displayClock||'';
     liveData[fix.id]={hs:sw?as_:hs,as:sw?hs:as_,status:effectiveStatus,min};
+    seen.add(fix.id);
     /* Update clock sync — parse minute from ESPN displayClock e.g. "45'" or "45+2'" */
     if(effectiveStatus==='live'){
       const rawMin = min.replace("'","").split('+')[0];
@@ -945,9 +969,9 @@ function processESPN(json){
       }
     }
   }
-  /* Also mark any fixture whose time has passed but ESPN didn't return at all */
+  /* Mark fixtures whose kick-off passed but ESPN didn't return — only if not already known */
   for(const f of FIXTURES){
-    if(!liveData[f.id] && new Date(f.utc)<now && (now-new Date(f.utc))<120*60*1000){
+    if(!seen.has(f.id)&&!liveData[f.id]&&new Date(f.utc)<now&&(now-new Date(f.utc))<120*60*1000){
       liveData[f.id]={hs:0,as:0,status:'live',min:''};
     }
   }
@@ -970,6 +994,31 @@ function buildStandings(){
   }
   for(const k of Object.keys(standings))
     standings[k].sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf);
+  populateBracketFromStandings();
+}
+
+/* Fill R32 bracket slots once a group's 6 matches are all finished */
+function populateBracketFromStandings(){
+  const labelRe=/^(\d+)([A-L]) vs (\d+)([A-L])$/;
+  const r32=BRACKET_ROUNDS[0];
+  for(const m of r32.matches){
+    if(bracketData[m.id]?.status==='ft'||bracketData[m.id]?.status==='live') continue;
+    const match=labelRe.exec(m.label);
+    if(!match) continue;
+    const p1=parseInt(match[1])-1,g1=match[2];
+    const p2=parseInt(match[3])-1,g2=match[4];
+    const g1fixes=FIXTURES.filter(f=>f.g===g1);
+    const g2fixes=FIXTURES.filter(f=>f.g===g2);
+    const g1done=g1fixes.length>0&&g1fixes.every(f=>liveData[f.id]?.status==='ft');
+    const g2done=g2fixes.length>0&&g2fixes.every(f=>liveData[f.id]?.status==='ft');
+    if(!g1done||!g2done) continue;
+    const st1=standings[g1],st2=standings[g2];
+    if(!st1||!st2) continue;
+    const t1=st1[p1]?.t,t2=st2[p2]?.t;
+    if(!t1||!t2) continue;
+    if(!bracketData[m.id]) bracketData[m.id]={h:t1,a:t2,hs:0,as:0,status:'sched',min:''};
+    else{bracketData[m.id].h=t1;bracketData[m.id].a=t2;}
+  }
 }
 
 /* Qualification status per team */
@@ -982,8 +1031,8 @@ function getQualStatus(grp,idx,row,gStandings){
     if(idx<2) return 'q';
     return 'elim'; // 3rd/4th determined post-group comparing all 3rds
   }
-  // Mid-tournament heuristics
-  const maxRemaining=(2-row.p)*3;
+  // Mid-tournament heuristics (each team plays 3 group games)
+  const maxRemaining=(3-row.p)*3;
   const r3=gStandings[2]?.pts||0;
   if(idx<2&&row.pts>r3+maxRemaining) return 'q'; // mathematically through
   if(idx>=2){
@@ -1233,7 +1282,6 @@ function renderGroups(){
   document.getElementById('groups-content').innerHTML=h;
 }
 
-/* ── FIXTURES ── */
 /* ── FIXTURES ── */
 function setFixtureView(v){
   fixtureView=v;

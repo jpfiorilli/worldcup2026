@@ -236,6 +236,19 @@ body{
 }
 .countdown.soon{color:var(--live);animation:pulse-text 1s ease-in-out infinite}
 @keyframes pulse-text{0%,100%{opacity:1}50%{opacity:.4}}
+/* LIVE PROGRESS BAR */
+.live-progress{height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;margin:6px 14px 2px}
+.live-progress-fill{height:100%;background:var(--live);border-radius:2px;transition:width .5s ease}
+/* TIME REMAINING */
+.live-remain{font-size:10px;color:var(--live);font-family:var(--font-h);letter-spacing:.06em;opacity:.8;margin-top:2px}
+.mc-remain{font-size:9px;color:var(--live);opacity:.8}
+/* LIVE FIXTURE HIGHLIGHT */
+.fixture-live-row{border-left:3px solid var(--live)!important;background:rgba(255,59,59,.04)!important;padding-left:9px!important}
+/* FINAL BADGE in fixture */
+.ft-label{font-size:9px;font-family:var(--font-h);letter-spacing:.1em;color:var(--done);background:rgba(0,201,167,.12);border-radius:2px;padding:1px 5px}
+/* QUAL ROW in fixture */
+.fix-qual{font-size:9px;padding:3px 4px;color:var(--muted);line-height:1.7;letter-spacing:.02em;width:100%;border-top:1px solid var(--border);margin-top:3px}
+.fix-qual .q{color:var(--done)}.fix-qual .elim{color:var(--accent-coral)}.fix-qual .mq{color:var(--gold)}
 /* FAV PICKER */
 .fav-picker{margin:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
 .fav-picker-title{
@@ -791,11 +804,11 @@ function norm(n){return NORM[n]||n}
 
 let fetchFailCount=0;
 
-async function fetchWithTimeout(url,ms=8000){
+async function fetchWithTimeout(url,ms=8000,headers={}){
   const ctrl=new AbortController();
   const tid=setTimeout(()=>ctrl.abort(),ms);
   try{
-    const r=await fetch(url,{signal:ctrl.signal});
+    const r=await fetch(url,{signal:ctrl.signal,headers});
     clearTimeout(tid);
     return r;
   }catch(e){
@@ -862,10 +875,16 @@ async function fetchScores(){
 /* ── football-data.org response parser ── */
 function processFDOrg(matches){
   const now = new Date();
+  /* Clear today's entries first to avoid stale 'live' persisting after a match ends */
+  const todayStr = now.toISOString().slice(0,10);
+  for(const f of FIXTURES){
+    if(f.utc.slice(0,10)===todayStr) delete liveData[f.id];
+  }
   for(const m of matches){
     const hn = normFD(m.homeTeam?.name||m.homeTeam?.shortName||'');
     const an = normFD(m.awayTeam?.name||m.awayTeam?.shortName||'');
     const st = m.status||'';
+    const isHT    = st==='HALFTIME';
     const isLive  = ['IN_PLAY','PAUSED','HALFTIME'].includes(st);
     const isFinal = ['FINISHED','AWARDED'].includes(st);
     const hs = m.score?.fullTime?.home ?? m.score?.halfTime?.home ?? 0;
@@ -874,11 +893,13 @@ function processFDOrg(matches){
     if(!fix) continue;
     const sw = fix.h===an;
     const kickoff = new Date(fix.utc);
+    const minsElapsed = (now - kickoff) / 60000;
     const passedKickoff = now > kickoff;
-    const effectiveStatus = isFinal?'ft': isLive?'live': passedKickoff?'live':'sched';
+    /* Only auto-promote to live within reasonable match window (< 130 min from kickoff) */
+    const effectiveStatus = isFinal?'ft': isLive?'live': (passedKickoff&&minsElapsed<130)?'live':'sched';
     const min = m.minute ? `${m.minute}'` : '';
-    liveData[fix.id] = {hs:sw?as_:hs, as:sw?hs:as_, status:effectiveStatus, min};
-    if(effectiveStatus==='live'){
+    liveData[fix.id] = {hs:sw?as_:hs, as:sw?hs:as_, status:effectiveStatus, min, ht:isHT, src:'football-data.org'};
+    if(effectiveStatus==='live' && !isHT){
       const parsedMin = parseInt(m.minute)||0;
       const prev = clockSync[fix.id];
       if(!prev || parsedMin > (prev.min||0)){
@@ -888,25 +909,52 @@ function processFDOrg(matches){
   }
 }
 
-/* football-data.org team name → our Spanish names */
+/* football-data.org team name → exact names used in FIXTURES/GROUPS */
 const FDORG_NORM = {
-  'Mexico':'México','South Korea':'Corea del Sur','South Africa':'Sudáfrica',
+  'Mexico':'Mexico','South Korea':'Corea del Sur','South Africa':'Sudáfrica',
   'Czech Republic':'República Checa','Bosnia and Herzegovina':'Bosnia-Herzegovina',
-  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haití',
+  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haiti',
   'Scotland':'Escocia','United States':'Estados Unidos','Paraguay':'Paraguay',
   'Australia':'Australia','Turkey':'Turquía','Germany':'Alemania',
   "Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador','Netherlands':'Países Bajos',
   'Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez','Belgium':'Bélgica',
-  'Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda','Spain':'España',
+  'Egypt':'Egipto','Iran':'Iran','New Zealand':'Nueva Zelanda','Spain':'España',
   'Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita','Cape Verde':'Cabo Verde',
   'France':'Francia','Senegal':'Senegal','Iraq':'Iraq','Norway':'Noruega',
   'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
   'Portugal':'Portugal','Colombia':'Colombia','DR Congo':'Congo DR',
-  'Uzbekistan':'Uzbekistán','England':'Inglaterra','Croatia':'Croacia',
-  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Canada':'Canadá',
+  'Uzbekistan':'Uzbekistan','England':'Inglaterra','Croatia':'Croacia',
+  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Canada':'Canada',
   'Qatar':'Qatar',
 };
-function normFD(n){ return FDORG_NORM[n] || norm(n) || n; }
+function normFD(n){ return FDORG_NORM[n] || n; }
+
+/* ESPN team name → exact names used in FIXTURES/GROUPS */
+const ESPN_NORM = {
+  'Mexico':'Mexico','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur',
+  'Republic of Korea':'Corea del Sur','South Africa':'Sudáfrica',
+  'Czech Republic':'República Checa','Bosnia and Herzegovina':'Bosnia-Herzegovina',
+  'Bosnia & Herz.':'Bosnia-Herzegovina','Bosnia-Herzegovina':'Bosnia-Herzegovina',
+  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haiti',
+  'Scotland':'Escocia','United States':'Estados Unidos','USA':'Estados Unidos',
+  'US':'Estados Unidos','Australia':'Australia',
+  'Turkey':'Turquía','Turkiye':'Turquía','Türkiye':'Turquía',
+  'Germany':'Alemania',"Côte d'Ivoire":'Costa de Marfil',
+  "Ivory Coast":'Costa de Marfil',"Cote d'Ivoire":'Costa de Marfil',
+  'Ecuador':'Ecuador','Netherlands':'Países Bajos','Holland':'Países Bajos',
+  'Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez','Belgium':'Bélgica',
+  'Egypt':'Egipto','IR Iran':'Iran','Iran':'Iran',
+  'New Zealand':'Nueva Zelanda','Spain':'España',
+  'Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita','Cape Verde':'Cabo Verde',
+  'France':'Francia','Senegal':'Senegal','Iraq':'Iraq','Norway':'Noruega',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','Colombia':'Colombia','DR Congo':'Congo DR',
+  'Congo':'Congo DR','DRC':'Congo DR',
+  'Uzbekistan':'Uzbekistan','England':'Inglaterra','Croatia':'Croacia',
+  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Curaçao':'Curaçao',
+  'Canada':'Canada','Qatar':'Qatar','Paraguay':'Paraguay',
+};
+function normESPN(n){ return ESPN_NORM[n] || n; }
 
 function processESPN(json){
   /* Handle both /scoreboard (events[]) and /header (sports[].leagues[].events[]) formats */
@@ -919,36 +967,38 @@ function processESPN(json){
     const hc=comps.find(x=>x.homeAway==='home')||comps[0];
     const ac=comps.find(x=>x.homeAway==='away')||comps[1];
     if(!hc||!ac) continue;
-    const hn=norm(hc.team?.displayName||hc.team?.name||'');
-    const an=norm(ac.team?.displayName||ac.team?.name||'');
+    const hn=normESPN(hc.team?.displayName||hc.team?.name||'');
+    const an=normESPN(ac.team?.displayName||ac.team?.name||'');
     const st=c.status?.type?.name||'';
-    const isLive=st.includes('IN_PROGRESS')||st.includes('HALFTIME')||st.includes('HALF_TIME');
-    const isFinal=st.includes('FINAL')||st.includes('FULL')||st.includes('FT')||st.includes('FULL_TIME');
+    const isHT=st.includes('HALFTIME')||st.includes('HALF_TIME');
+    const isLive=st.includes('IN_PROGRESS')||isHT;
+    const isFinal=st.includes('FINAL')||st.includes('FULL_TIME');
     const hs=parseInt(hc.score||'0')||0, as_=parseInt(ac.score||'0')||0;
     const fix=FIXTURES.find(f=>(f.h===hn&&f.a===an)||(f.h===an&&f.a===hn));
     if(!fix) continue;
     const sw=fix.h===an;
-    /* If ESPN still shows scheduled but kick-off has passed → treat as live (ESPN data lag) */
     const kickoff=new Date(fix.utc);
+    const minsElapsed=(now-kickoff)/60000;
     const passedKickoff=now>kickoff;
-    const effectiveStatus=isFinal?'ft':isLive?'live':passedKickoff?'live':'sched';
+    /* Only auto-promote to live within reasonable match window (< 130 min from kickoff) */
+    const effectiveStatus=isFinal?'ft':isLive?'live':(passedKickoff&&minsElapsed<130)?'live':'sched';
     const min=c.status?.displayClock||'';
-    liveData[fix.id]={hs:sw?as_:hs,as:sw?hs:as_,status:effectiveStatus,min};
-    /* Update clock sync — parse minute from ESPN displayClock e.g. "45'" or "45+2'" */
-    if(effectiveStatus==='live'){
-      const rawMin = min.replace("'","").split('+')[0];
-      const parsedMin = parseInt(rawMin)||0;
-      const prev = clockSync[fix.id];
-      /* Only update if minute advanced (avoid resetting seconds on same-minute polls) */
-      if(!prev || parsedMin > (prev.min||0)){
-        clockSync[fix.id]={min:parsedMin, secs:0, receivedAt:Date.now()};
+    liveData[fix.id]={hs:sw?as_:hs,as:sw?hs:as_,status:effectiveStatus,min,ht:isHT,src:'ESPN'};
+    if(effectiveStatus==='live'&&!isHT){
+      const rawMin=min.replace("'","").split('+')[0];
+      const parsedMin=parseInt(rawMin)||0;
+      const prev=clockSync[fix.id];
+      if(!prev||parsedMin>(prev.min||0)){
+        clockSync[fix.id]={min:parsedMin,secs:0,receivedAt:Date.now()};
       }
     }
   }
-  /* Also mark any fixture whose time has passed but ESPN didn't return at all */
+  /* Mark fixtures whose kickoff passed but ESPN didn't return (within 130 min window) */
   for(const f of FIXTURES){
-    if(!liveData[f.id] && new Date(f.utc)<now && (now-new Date(f.utc))<120*60*1000){
-      liveData[f.id]={hs:0,as:0,status:'live',min:''};
+    const kickoff=new Date(f.utc);
+    const minsElapsed=(now-kickoff)/60000;
+    if(!liveData[f.id]&&minsElapsed>0&&minsElapsed<130){
+      liveData[f.id]={hs:0,as:0,status:'live',min:'',src:'ESPN'};
     }
   }
 }
@@ -1140,7 +1190,11 @@ function renderScores(){
 function liveCard(f){
   const d=liveData[f.id];
   const fh=isFav(f.h),fa=isFav(f.a);
-  const minLabel = d.min && d.min!=='0\'' ? d.min : 'En vivo';
+  const isHT=d.ht;
+  const minLabel=isHT?'Medio Tiempo':d.min&&d.min!=='0\''?d.min:'En vivo';
+  const parsedMin=parseInt(d.min)||0;
+  const pct=Math.min(100,Math.round((parsedMin/90)*100));
+  const remainLabel=isHT?'Medio Tiempo':parsedMin>=90?'Tiempo extra':parsedMin>0?`~${90-parsedMin}m restantes`:'';
   return `<div class="match-live">
     <div class="match-live-hdr">
       <span class="match-badge">Grupo ${f.g} · ${f.v}</span>
@@ -1154,14 +1208,16 @@ function liveCard(f){
       <div class="score-center">
         <div class="score-nums">${d.hs}<span class="score-sep">–</span>${d.as}</div>
         <div class="score-venue">🔴 En juego · Live</div>
+        <div class="live-remain" data-clock-remain="${f.id}">${remainLabel}</div>
       </div>
       <div class="match-team right">
         <span class="match-team-flag">${fl(f.a)}</span>
         <span class="match-team-name">${fa?'⭐ ':''}${f.a}</span>
       </div>
     </div>
+    <div class="live-progress"><div class="live-progress-fill" data-clock-prog="${f.id}" style="width:${pct}%"></div></div>
     <div style="text-align:center;padding:4px 12px 6px;font-size:9px;color:var(--muted);font-family:var(--font-b)">
-      Actualización automática cada 10s · datos vía football-data.org
+      Actualización automática cada 10s · datos vía ${d.src||'football-data.org'}
     </div></div>`;
 }
 
@@ -1248,14 +1304,39 @@ function renderFixtures(){
   else renderFixturesByGroup();
 }
 
+function teamFixtureQual(group,teamName){
+  const rows=standings[group];
+  if(!rows) return null;
+  const idx=rows.findIndex(r=>r.t===teamName);
+  if(idx<0) return null;
+  return {pos:idx+1,pts:rows[idx].pts,p:rows[idx].p,qs:getQualStatus(group,idx,rows[idx],rows)};
+}
+
 function fixtureCard(f){
   const d=liveData[f.id];
   const fh=isFav(f.h),fa=isFav(f.a),isFavMatch=fh||fa;
-  let mid;
+  const isLive=d?.status==='live';
+  let mid,qualRow='';
   if(d&&d.status==='ft'){
-    mid=`<div class="mc-center"><div class="mc-score">${d.hs}–${d.as}</div><div class="mc-time">FT · ${f.v}</div></div>`;
-  } else if(d&&d.status==='live'){
-    mid=`<div class="mc-center"><div class="mc-score live-s">${d.hs}–${d.as}</div><div class="mc-time" style="color:var(--live)"><span data-clock="${f.id}">${d.min||''}</span> · ${f.v}</div></div>`;
+    const hq=teamFixtureQual(f.g,f.h);
+    const aq=teamFixtureQual(f.g,f.a);
+    if(hq&&aq&&hq.p>0){
+      const qLbl=qs=>qs==='q'?' ✓':qs==='elim'?' ✗':qs==='mq'?' ~':'';
+      qualRow=`<div class="fix-qual">
+        <span class="${hq.qs}">${f.h} ${hq.pos}° · ${hq.pts}pts${qLbl(hq.qs)}</span>&ensp;
+        <span class="${aq.qs}">${f.a} ${aq.pos}° · ${aq.pts}pts${qLbl(aq.qs)}</span>
+      </div>`;
+    }
+    mid=`<div class="mc-center"><div style="margin-bottom:2px"><span class="ft-label">FINAL</span></div><div class="mc-score">${d.hs}–${d.as}</div><div class="mc-time">Grupo ${f.g} · ${f.v}</div></div>`;
+  } else if(isLive){
+    const isHT=d.ht;
+    const minTxt=isHT?'Medio Tiempo':d.min||'En vivo';
+    const parsedMin=parseInt(d.min)||0;
+    const remainLabel=isHT?'':parsedMin>=90?'ET':parsedMin>0?`~${90-parsedMin}m`:'';
+    mid=`<div class="mc-center">
+      <div class="mc-score live-s">${d.hs}–${d.as}</div>
+      <div class="mc-time" style="color:var(--live)"><span data-clock="${f.id}">${minTxt}</span>${remainLabel?` · <span class="mc-remain" data-clock-remain="${f.id}">${remainLabel}</span>`:''}</div>
+    </div>`;
   } else {
     const cd=countdown(f.utc);const soon=isSoon(f.utc);
     mid=`<div class="mc-center">
@@ -1264,10 +1345,11 @@ function fixtureCard(f){
       ${cd?`<div class="countdown${soon?' soon':''}" data-utc="${f.utc}">⏱ ${cd}</div>`:''}
     </div>`;
   }
-  return `<div class="match-card${isFavMatch?' fav-match':''}" style="margin:4px 8px;padding:7px 10px">
+  return `<div class="match-card${isFavMatch?' fav-match':''}${isLive?' fixture-live-row':''}" style="margin:4px 8px;padding:7px 10px;flex-wrap:wrap">
     <span class="mc-team" style="font-size:13px"><span class="mc-flag">${fl(f.h)}</span>${fh?'⭐ ':''}${f.h}</span>
     ${mid}
     <span class="mc-team right" style="font-size:13px">${fa?'⭐ ':''}${f.a}<span class="mc-flag-r">${fl(f.a)}</span></span>
+    ${qualRow}
   </div>`;
 }
 
@@ -1279,6 +1361,8 @@ function renderFixturesByGroup(){
     h+=`</div>`;
   }
   document.getElementById('fixtures-content').innerHTML=h;
+  const firstLive=document.querySelector('#fixtures-content .fixture-live-row');
+  if(firstLive) setTimeout(()=>firstLive.scrollIntoView({behavior:'smooth',block:'center'}),80);
 }
 
 function renderFixturesByDate(){
@@ -1305,6 +1389,8 @@ function renderFixturesByDate(){
     h+=`</div>`;
   }
   document.getElementById('fixtures-content').innerHTML=h;
+  const firstLiveD=document.querySelector('#fixtures-content .fixture-live-row');
+  if(firstLiveD) setTimeout(()=>firstLiveD.scrollIntoView({behavior:'smooth',block:'center'}),80);
 }
 
 
@@ -1442,14 +1528,19 @@ function tickMatchClocks(){
   for(const [id, sync] of Object.entries(clockSync)){
     const d = liveData[id];
     if(!d || d.status!=='live') continue;
+    if(d.ht){ continue; } // halftime — clock frozen, labels already set
     const elapsed = Math.floor((Date.now() - sync.receivedAt) / 1000);
     const totalSecs = sync.min * 60 + elapsed;
-    const dispMin = Math.min(Math.floor(totalSecs/60), 90);
+    const rawMin = Math.floor(totalSecs/60);
     const dispSec = totalSecs % 60;
-    const dispStr = `${dispMin}'${String(dispSec).padStart(2,'0')}`;
-    document.querySelectorAll(`[data-clock="${id}"]`).forEach(el=>{
-      el.textContent = dispStr;
-    });
+    const dispStr = rawMin > 90
+      ? `90+${rawMin-90}'${String(dispSec).padStart(2,'0')}`
+      : `${rawMin}'${String(dispSec).padStart(2,'0')}`;
+    document.querySelectorAll(`[data-clock="${id}"]`).forEach(el=>{ el.textContent=dispStr; });
+    const remainStr = rawMin>=90 ? 'Tiempo extra' : `~${90-rawMin}m restantes`;
+    document.querySelectorAll(`[data-clock-remain="${id}"]`).forEach(el=>{ el.textContent=remainStr; });
+    const pct = Math.min(100, Math.round((rawMin/90)*100));
+    document.querySelectorAll(`[data-clock-prog="${id}"]`).forEach(el=>{ el.style.width=pct+'%'; });
   }
 }
 

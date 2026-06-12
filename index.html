@@ -804,11 +804,11 @@ function norm(n){return NORM[n]||n}
 
 let fetchFailCount=0;
 
-async function fetchWithTimeout(url,ms=8000){
+async function fetchWithTimeout(url,ms=8000,headers={}){
   const ctrl=new AbortController();
   const tid=setTimeout(()=>ctrl.abort(),ms);
   try{
-    const r=await fetch(url,{signal:ctrl.signal});
+    const r=await fetch(url,{signal:ctrl.signal,headers});
     clearTimeout(tid);
     return r;
   }catch(e){
@@ -909,25 +909,52 @@ function processFDOrg(matches){
   }
 }
 
-/* football-data.org team name → our Spanish names */
+/* football-data.org team name → exact names used in FIXTURES/GROUPS */
 const FDORG_NORM = {
-  'Mexico':'México','South Korea':'Corea del Sur','South Africa':'Sudáfrica',
+  'Mexico':'Mexico','South Korea':'Corea del Sur','South Africa':'Sudáfrica',
   'Czech Republic':'República Checa','Bosnia and Herzegovina':'Bosnia-Herzegovina',
-  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haití',
+  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haiti',
   'Scotland':'Escocia','United States':'Estados Unidos','Paraguay':'Paraguay',
   'Australia':'Australia','Turkey':'Turquía','Germany':'Alemania',
   "Côte d'Ivoire":'Costa de Marfil','Ecuador':'Ecuador','Netherlands':'Países Bajos',
   'Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez','Belgium':'Bélgica',
-  'Egypt':'Egipto','Iran':'Irán','New Zealand':'Nueva Zelanda','Spain':'España',
+  'Egypt':'Egipto','Iran':'Iran','New Zealand':'Nueva Zelanda','Spain':'España',
   'Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita','Cape Verde':'Cabo Verde',
   'France':'Francia','Senegal':'Senegal','Iraq':'Iraq','Norway':'Noruega',
   'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
   'Portugal':'Portugal','Colombia':'Colombia','DR Congo':'Congo DR',
-  'Uzbekistan':'Uzbekistán','England':'Inglaterra','Croatia':'Croacia',
-  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Canada':'Canadá',
+  'Uzbekistan':'Uzbekistan','England':'Inglaterra','Croatia':'Croacia',
+  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Canada':'Canada',
   'Qatar':'Qatar',
 };
-function normFD(n){ return FDORG_NORM[n] || norm(n) || n; }
+function normFD(n){ return FDORG_NORM[n] || n; }
+
+/* ESPN team name → exact names used in FIXTURES/GROUPS */
+const ESPN_NORM = {
+  'Mexico':'Mexico','South Korea':'Corea del Sur','Korea Republic':'Corea del Sur',
+  'Republic of Korea':'Corea del Sur','South Africa':'Sudáfrica',
+  'Czech Republic':'República Checa','Bosnia and Herzegovina':'Bosnia-Herzegovina',
+  'Bosnia & Herz.':'Bosnia-Herzegovina','Bosnia-Herzegovina':'Bosnia-Herzegovina',
+  'Switzerland':'Suiza','Brazil':'Brasil','Morocco':'Marruecos','Haiti':'Haiti',
+  'Scotland':'Escocia','United States':'Estados Unidos','USA':'Estados Unidos',
+  'US':'Estados Unidos','Australia':'Australia',
+  'Turkey':'Turquía','Turkiye':'Turquía','Türkiye':'Turquía',
+  'Germany':'Alemania',"Côte d'Ivoire":'Costa de Marfil',
+  "Ivory Coast":'Costa de Marfil',"Cote d'Ivoire":'Costa de Marfil',
+  'Ecuador':'Ecuador','Netherlands':'Países Bajos','Holland':'Países Bajos',
+  'Japan':'Japón','Sweden':'Suecia','Tunisia':'Túnez','Belgium':'Bélgica',
+  'Egypt':'Egipto','IR Iran':'Iran','Iran':'Iran',
+  'New Zealand':'Nueva Zelanda','Spain':'España',
+  'Uruguay':'Uruguay','Saudi Arabia':'Arabia Saudita','Cape Verde':'Cabo Verde',
+  'France':'Francia','Senegal':'Senegal','Iraq':'Iraq','Norway':'Noruega',
+  'Argentina':'Argentina','Algeria':'Argelia','Austria':'Austria','Jordan':'Jordania',
+  'Portugal':'Portugal','Colombia':'Colombia','DR Congo':'Congo DR',
+  'Congo':'Congo DR','DRC':'Congo DR',
+  'Uzbekistan':'Uzbekistan','England':'Inglaterra','Croatia':'Croacia',
+  'Ghana':'Ghana','Panama':'Panamá','Curacao':'Curaçao','Curaçao':'Curaçao',
+  'Canada':'Canada','Qatar':'Qatar','Paraguay':'Paraguay',
+};
+function normESPN(n){ return ESPN_NORM[n] || n; }
 
 function processESPN(json){
   /* Handle both /scoreboard (events[]) and /header (sports[].leagues[].events[]) formats */
@@ -940,8 +967,8 @@ function processESPN(json){
     const hc=comps.find(x=>x.homeAway==='home')||comps[0];
     const ac=comps.find(x=>x.homeAway==='away')||comps[1];
     if(!hc||!ac) continue;
-    const hn=norm(hc.team?.displayName||hc.team?.name||'');
-    const an=norm(ac.team?.displayName||ac.team?.name||'');
+    const hn=normESPN(hc.team?.displayName||hc.team?.name||'');
+    const an=normESPN(ac.team?.displayName||ac.team?.name||'');
     const st=c.status?.type?.name||'';
     const isHT=st.includes('HALFTIME')||st.includes('HALF_TIME');
     const isLive=st.includes('IN_PROGRESS')||isHT;

@@ -9,6 +9,12 @@ from datetime import datetime, timezone
 FDORG_KEY = os.environ.get('FDORG_KEY', '')
 TODAY = datetime.now(timezone.utc).strftime('%Y-%m-%d')
 
+# ── Permanent fallback: hand-verified results the API has missed ──
+# These are never overwritten by the API (only added to).
+PERMANENT = {
+    2: {'hs': 2, 'as': 1},  # Corea del Sur 2-1 República Checa
+}
+
 # ── Team name mapping: football-data.org names → Spanish names used in FIXTURES ──
 TEAM_MAP = {
     'Mexico': 'Mexico',
@@ -154,6 +160,12 @@ print(f'  Got {len(matches)} finished matches from API')
 
 results = build_static_results(matches, fixtures)
 print(f'  Mapped {len(results)} results to fixtures')
+
+# Merge permanent fallback — API results take priority, then permanent
+merged = dict(PERMANENT)
+merged.update(results)
+results = merged
+print(f'  Total after permanent merge: {len(results)} entries')
 
 if not results:
     print('No results to write, exiting.')

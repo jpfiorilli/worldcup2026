@@ -1,0 +1,29 @@
+name: Update Match Results
+
+on:
+  schedule:
+    # Runs every 3 hours during the tournament
+    - cron: '0 */3 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch results and update STATIC_RESULTS
+        env:
+          FDORG_KEY: ${{ secrets.FDORG_KEY }}
+        run: python3 scripts/update_results.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "results: auto-update STATIC_RESULTS $(date -u +%Y-%m-%d\ %H:%M) UTC"
+          git push

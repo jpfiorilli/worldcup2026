@@ -864,8 +864,10 @@ async function fetchScores(){
     /* ── FALLBACK: ESPN (no auth, but unreliable) ── */
     if(!ok){
       const dateStr=now.toISOString().slice(0,10).replace(/-/g,'');
+      const yesterday=new Date(now-864e5).toISOString().slice(0,10).replace(/-/g,'');
       const urls=[
         `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${dateStr}`,
+        `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${yesterday}`,
         'https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard',
       ];
       for(const url of urls){

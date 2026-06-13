@@ -81,7 +81,7 @@ def load_fixtures(html):
 
 def fetch_completed_matches():
     """Fetch all finished matches from football-data.org"""
-    url = f'https://api.football-data.org/v4/competitions/WC/matches?dateFrom=2026-06-11&dateTo={TODAY}&status=FINISHED'
+    url = f'https://api.football-data.org/v4/competitions/WC/matches?dateFrom=2026-06-11&dateTo={TODAY}'
     req = urllib.request.Request(url, headers={'X-Auth-Token': FDORG_KEY})
     try:
         with urllib.request.urlopen(req, timeout=15) as resp:

@@ -2,9 +2,11 @@ name: Update Match Results
 
 on:
   schedule:
-    # Runs every 3 hours during the tournament
-    - cron: '0 */3 * * *'
+    # Every 30 min during tournament (Jun 11 – Jul 20)
+    - cron: '*/30 * * * *'
   workflow_dispatch:
+  repository_dispatch:
+    types: [update-results]
 
 jobs:
   update:

@@ -1788,9 +1788,22 @@ function switchPage(name,idx){
 
 function manualRefresh(){
   const b=document.getElementById('rbtn');
+  const el=document.getElementById('last-upd');
+  b.disabled=true;
   b.classList.add('sp');
-  setTimeout(()=>b.classList.remove('sp'),700);
-  fetchScores();
+  if(el) el.textContent='Actualizando…';
+
+  fetchScores().then(()=>{
+    b.classList.remove('sp');
+    /* Second fetch after 90s — gives APIs time to mark a just-finished game as FINISHED */
+    setTimeout(()=>{
+      if(el) el.textContent='Verificando resultados…';
+      fetchScores().then(()=>{
+        b.disabled=false;
+        if(el) el.textContent=`Actualizado: ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} ${TZ_LABEL}`;
+      });
+    }, 90000);
+  });
 }
 
 /* ═══════════════════════════════════════

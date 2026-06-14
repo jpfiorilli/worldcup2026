@@ -913,6 +913,8 @@ function processFDOrg(matches){
     const passedKickoff = now > kickoff;
     /* Only auto-promote to live within reasonable match window (< 130 min from kickoff) */
     const effectiveStatus = isFinal?'ft': isLive?'live': (passedKickoff&&minsElapsed<130)?'live':'sched';
+    /* Never downgrade a known ft result — API can be slow to mark FINISHED */
+    if(STATIC_RESULTS[fix.id]?.status==='ft' && effectiveStatus!=='ft') continue;
     const min = m.minute ? `${m.minute}'` : '';
     liveData[fix.id] = {hs:sw?as_:hs, as:sw?hs:as_, status:effectiveStatus, min, ht:isHT, src:'football-data.org'};
     if(effectiveStatus==='live' && !isHT){
@@ -998,6 +1000,8 @@ function processESPN(json){
     const passedKickoff=now>kickoff;
     /* Only auto-promote to live within reasonable match window (< 130 min from kickoff) */
     const effectiveStatus=isFinal?'ft':isLive?'live':(passedKickoff&&minsElapsed<130)?'live':'sched';
+    /* Never downgrade a known ft result — API can be slow to mark FINISHED */
+    if(STATIC_RESULTS[fix.id]?.status==='ft' && effectiveStatus!=='ft') continue;
     const min=c.status?.displayClock||'';
     liveData[fix.id]={hs:sw?as_:hs,as:sw?hs:as_,status:effectiveStatus,min,ht:isHT,src:'ESPN'};
     if(effectiveStatus==='live'&&!isHT){
@@ -1010,10 +1014,12 @@ function processESPN(json){
     }
   }
   /* Mark fixtures whose kickoff passed but ESPN didn't return (within 130 min window) */
+  /* Never override a known 'ft' result — only promote genuinely unknown in-progress games */
   for(const f of FIXTURES){
     const kickoff=new Date(f.utc);
     const minsElapsed=(now-kickoff)/60000;
-    if(!liveData[f.id]&&minsElapsed>0&&minsElapsed<130){
+    const existing=liveData[f.id];
+    if(!existing && minsElapsed>0 && minsElapsed<130){
       liveData[f.id]={hs:0,as:0,status:'live',min:'',src:'ESPN'};
     }
   }

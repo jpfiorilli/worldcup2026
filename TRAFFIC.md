@@ -6,6 +6,7 @@ Analytics detallados: counter.dev (dashboard privado — jpfiorilli-wc2026)
 
 ## Tráfico del repo (GitHub API, ventana de 14 días)
 | Fecha | Views repo | Únicos | Clones | Clones únicos |
+| 2026-08-16 | 0 | 0 | 0 | 0 |
 | 2026-08-15 | 0 | 0 | 0 | 0 |
 | 2026-08-14 | 0 | 0 | 0 | 0 |
 | 2026-08-13 | 0 | 0 | 0 | 0 |
